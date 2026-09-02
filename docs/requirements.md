@@ -12,7 +12,9 @@
 Nu este un tab de chat generic. Este o aplicație web online, construită modular pe parcursul unui curs, în care se învață cum se leagă un LLM la o interfață web reală — cu agent AI, streaming, memorie și (mai târziu) unelte.
 
 **Decizii curente:**
-- Stack Faza 1: Next.js (App Router) + TypeScript + Vercel AI SDK
+
+- Stack: Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui + Vercel AI SDK (la integrarea agentului)
+- Nume proiect npm: `skill-forge`; alias import: `@/*`; folder sursă: `src/`
 - MVP: single-user (un singur profil); autentificare și multi-user în faze ulterioare
 
 ---
@@ -26,6 +28,7 @@ Instrumente generice (ex. ChatGPT) oferă sfaturi de carieră fără context per
 ### Soluția
 
 O aplicație personală care:
+
 1. **Salvează profilul** — stack, skills cu nivel, obiectiv de carieră
 2. **Construiește context** — system prompt din profil la fiecare conversație
 3. **Păstrează memorie** — conversații și progres între sesiuni
@@ -37,12 +40,12 @@ O aplicație personală care:
 
 SkillForge este pentru oricine vrea să crească profesional și are nevoie de un plan personalizat:
 
-| Profil tipic | Exemplu de obiectiv |
-|--------------|---------------------|
-| Backend Java | Trecere spre AI engineer |
-| Frontend | Învățare Python sau Java |
-| QA manual | Trecere spre automatizare |
-| Junior | Clarificare direcție și pași concreți |
+| Profil tipic | Exemplu de obiectiv                   |
+| ------------ | ------------------------------------- |
+| Backend Java | Trecere spre AI engineer              |
+| Frontend     | Învățare Python sau Java              |
+| QA manual    | Trecere spre automatizare             |
+| Junior       | Clarificare direcție și pași concreți |
 
 **Punctul comun** nu este tehnologia, ci faptul că fiecare pornește dintr-un loc diferit și are un obiectiv diferit. De aceea **profilul contează atât de mult**.
 
@@ -50,22 +53,23 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 
 ## 4. Principii de design
 
-| Principiu | Descriere |
-|-----------|-----------|
-| **Agent, nu formular** | În centru stă un agent AI: chat cu streaming, system prompt din profil, memorie între sesiuni, unelte invocate automat (Faza 3). Nu un formular care trimite text la un model și afișează rezultatul. |
-| **Profil persistent** | Stack-ul curent, skill-urile cu nivel, obiectivul de carieră — salvate, editabile, care cresc în timp. |
-| **LLM pe server** | Modelul se apelează de pe server, printr-un provider configurabil. Cheia API **nu ajunge niciodată în browser**. |
-| **Provider schimbabil** | Abstracție care permite schimbarea providerului (OpenAI, Anthropic etc.) pentru a compara răspunsuri și costuri. |
-| **Modular (curs)** | Fiecare modul adaugă o bucată clară. La fiecare pas se înțelege *ce* s-a adăugat și *de ce* era nevoie. |
-| **Documentație ca sursă de adevăr** | Cerințele stau în acest fișier. Schimbările de scope se actualizează aici, nu doar în conversație. |
+| Principiu                           | Descriere                                                                                                                                                                                             |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent, nu formular**              | În centru stă un agent AI: chat cu streaming, system prompt din profil, memorie între sesiuni, unelte invocate automat (Faza 3). Nu un formular care trimite text la un model și afișează rezultatul. |
+| **Profil persistent**               | Stack-ul curent, skill-urile cu nivel, obiectivul de carieră — salvate, editabile, care cresc în timp.                                                                                                |
+| **LLM pe server**                   | Modelul se apelează de pe server, printr-un provider configurabil. Cheia API **nu ajunge niciodată în browser**.                                                                                      |
+| **Provider schimbabil**             | Abstracție care permite schimbarea providerului (OpenAI, Anthropic etc.) pentru a compara răspunsuri și costuri.                                                                                      |
+| **Modular (curs)**                  | Fiecare modul adaugă o bucată clară. La fiecare pas se înțelege _ce_ s-a adăugat și _de ce_ era nevoie.                                                                                               |
+| **Documentație ca sursă de adevăr** | Cerințele stau în acest fișier. Schimbările de scope se actualizează aici, nu doar în conversație.                                                                                                    |
 
 ---
 
 ## 5. Cerințe funcționale pe faze
 
-### Faza 0 — Documentație *(acest pas)*
+### Faza 0 — Documentație _(acest pas)_
 
 **In scope:**
+
 - [`requirements.md`](requirements.md) — acest fișier
 - [`agent-instructions.md`](agent-instructions.md) — instrucțiuni pentru agenți AI (engleză)
 - Script de sincronizare → `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`
@@ -73,23 +77,48 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 - `.gitignore`, `.env.example` (placeholder)
 
 **Out of scope:**
+
 - Cod de aplicație
 - Integrări externe (LLM, DB, auth)
 
 ---
 
-### Faza 1 — Shell + chat contextual minimal
+### Faza 1 — Aplicația SkillForge (modular)
+
+Faza 1 este împărțită în sub-pași; fiecare livrează o bucată clară peste același proiect.
+
+#### Faza 1.1 — Schelet Next.js _(livrat)_
 
 **In scope:**
-- Aplicație Next.js (App Router) + TypeScript
+
+- Proiect `skill-forge`: Next.js (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui (`button`, `cn()`)
+- Structură: `src/app/layout.tsx`, `page.tsx`, `globals.css`; rută `/demo`
+- Componentă client (`Counter`) și server (`ServerTime`) — diferența vizibilă pe ecran
+- Route Handler `src/app/api/hello/route.ts` — citește env server-side; strămoșul lui `/api/chat`
+- Prettier + `prettier-plugin-tailwindcss` (cu `tailwindStylesheet` pentru Tailwind v4)
+- `.vscode/settings.json` comis (format on save)
+- Documentație integrări: [`docs/README.md`](README.md) (index), [`docs/_template/README.md`](_template/README.md) (șablon)
+- Comentarii în română în fișierele sursă — explică **de ce**, nu ce face
+
+**Out of scope:**
+
+- Agent AI, chat, streaming LLM
+- Profil utilizator
+- Integrări externe active (doar formatul documentației)
+
+#### Faza 1.2 — Agent + chat contextual minimal _(următorul pas)_
+
+**In scope:**
+
 - Profil single-user persistat local (fișier JSON sau SQLite — se documentează la implementare)
 - Formular simplu pentru editarea profilului (stack, skills + nivel, obiectiv)
 - UI chat cu **răspuns streaming** (Vercel AI SDK)
-- Un provider LLM (ex. OpenAI), apelat exclusiv de pe server
+- Un provider LLM (ex. Anthropic), apelat exclusiv de pe server via `/api/chat`
 - System prompt construit din câmpurile profilului
-- Documentație manuală: `docs/<provider>/README.md` (cont, cheie, env vars, cost)
+- Documentație manuală: `docs/<provider>/README.md` + rând în index
 
 **Out of scope:**
+
 - Memorie între sesiuni (conversațiile nu persistă încă)
 - Plan de învățare structurat
 - Unelte agent (tool calling)
@@ -102,6 +131,7 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 ### Faza 2 — Memorie și progres
 
 **In scope:**
+
 - Persistență conversații între sesiuni
 - Actualizare profil/progres din conversație (ex. „am terminat modulul de streaming")
 - Plan de învățare structurat (pași, termene) stocat și injectat în system prompt
@@ -109,6 +139,7 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 - Răspunsuri contextuale la progres (ex. „ce urmează?")
 
 **Out of scope:**
+
 - Tool calling / unelte agent
 - Comparare provideri
 - Autentificare, deploy producție
@@ -118,6 +149,7 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 ### Faza 3 — Agent cu unelte + operațiuni
 
 **In scope:**
+
 - Tool calling: agentul invocă singur funcții (caută în notițe, actualizează plan, marchează progres)
 - Al doilea provider LLM pentru comparație cost/calitate
 - Autentificare (dacă e nevoie pentru deploy multi-device)
@@ -126,6 +158,7 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 - Fiecare integrare externă nouă → `docs/<integrare>/README.md`
 
 **Out of scope:**
+
 - Funcționalități sociale (profil public, sharing)
 - Marketplace de planuri
 
@@ -135,15 +168,16 @@ SkillForge este pentru oricine vrea să crească profesional și are nevoie de u
 
 ### Exemple concrete
 
-| Întrebare utilizator | Faza minimă | Comportament așteptat |
-|----------------------|-------------|------------------------|
-| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2 | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice |
-| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK" | Faza 2 | Plan structurat, salvat, reutilizabil în sesiuni viitoare |
-| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+ | Știe progresul; propune pasul următor din plan |
+| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                        |
+| -------------------------------------------------------------- | ----------- | ------------------------------------------------------------ |
+| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice |
+| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare    |
+| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan               |
 
 ### Format pentru criterii noi
 
 La adăugarea unei funcționalități noi, documentează:
+
 1. **Întrebare/acțiune utilizator** — ce declanșează
 2. **Faza minimă** — când devine posibil
 3. **Comportament așteptat** — ce trebuie să se întâmple, verificabil
@@ -161,12 +195,12 @@ La adăugarea unei funcționalități noi, documentează:
 
 ### Date personale (profil)
 
-| Aspect | Faza 1–2 (MVP) | Faza 3+ |
-|--------|----------------|---------|
-| Stocare | Locală (fișier/SQLite pe mașina de dev) | Poate migra la cloud DB |
-| Acces | Doar utilizatorul local | Autentificare necesară |
+| Aspect             | Faza 1–2 (MVP)                                                              | Faza 3+                                         |
+| ------------------ | --------------------------------------------------------------------------- | ----------------------------------------------- |
+| Stocare            | Locală (fișier/SQLite pe mașina de dev)                                     | Poate migra la cloud DB                         |
+| Acces              | Doar utilizatorul local                                                     | Autentificare necesară                          |
 | Trimitere la terți | Doar conținutul conversației la providerul LLM (necesar pentru funcționare) | Aceeași regulă + politică explicită documentată |
-| Ștergere | Utilizatorul poate șterge datele local | Endpoint/mechanism documentat |
+| Ștergere           | Utilizatorul poate șterge datele local                                      | Endpoint/mechanism documentat                   |
 
 ### Costuri provider LLM
 
@@ -174,14 +208,22 @@ La adăugarea unei funcționalități noi, documentează:
 - Include: link oficial pricing, estimare orientativă la momentul documentării, variabile env relevante
 - Prețurile se schimbă — documentația indică sursa oficială, nu garantează exactitatea
 
+### Formatare cod
+
+- **Prettier** obligatoriu din Faza 1.1: `npm run format` / `npm run format:check`
+- Configurație fixă în `.prettierrc` (inclusiv `prettier-plugin-tailwindcss` + `tailwindStylesheet`)
+- `.prettierignore` în rădăcina proiectului (complet, autonom — fără `--ignore-path` extern)
+- `.vscode/settings.json` comis: format on save cu Prettier
+
 ### Limbi documentație
 
-| Fișier | Limbă |
-|--------|-------|
-| `docs/requirements.md` | Română |
-| `docs/agent-instructions.md` | Engleză |
+| Fișier                       | Limbă                                   |
+| ---------------------------- | --------------------------------------- |
+| `docs/requirements.md`       | Română                                  |
+| `docs/agent-instructions.md` | Engleză                                 |
 | `docs/<integrare>/README.md` | Română (pași manuali pentru utilizator) |
-| Cod (comentarii, nume) | Engleză |
+| Cod — comentarii explicative | Română (de ce e scris așa)              |
+| Cod — identificatori         | Engleză                                 |
 
 ### Performanță (orientativ, Faza 1+)
 
@@ -192,42 +234,43 @@ La adăugarea unei funcționalități noi, documentează:
 
 ## 8. Stack tehnic
 
-| Componentă | Tehnologie | De la faza |
-|------------|------------|------------|
-| Framework web | Next.js (App Router) | 1 |
-| Limbaj | TypeScript | 1 |
-| LLM integration | Vercel AI SDK | 1 |
-| Styling | TBD la Faza 1 (Tailwind recomandat) | 1 |
-| Persistență profil | JSON file sau SQLite | 1 |
-| Persistență conversații | SQLite sau JSON | 2 |
-| Deploy | TBD (Vercel recomandat) | 3 |
+| Componentă              | Tehnologie                             | De la faza |
+| ----------------------- | -------------------------------------- | ---------- |
+| Framework web           | Next.js 16 (App Router)                | 1.1        |
+| Limbaj                  | TypeScript                             | 1.1        |
+| Styling                 | Tailwind CSS v4 + shadcn/ui            | 1.1        |
+| Formatare               | Prettier + prettier-plugin-tailwindcss | 1.1        |
+| LLM integration         | Vercel AI SDK                          | 1.2        |
+| Persistență profil      | JSON file sau SQLite                   | 1.2        |
+| Persistență conversații | SQLite sau JSON                        | 2          |
+| Deploy                  | TBD (Vercel recomandat)                | 3          |
 
 ---
 
 ## 9. Glosar
 
-| Termen | Definiție |
-|--------|-----------|
-| **Agent** | Orchestrator AI care combină system prompt, memorie și (Faza 3) unelte invocate automat |
-| **Provider** | Serviciu extern de LLM (OpenAI, Anthropic, Google etc.) apelat exclusiv de pe server |
-| **Streaming** | Livrarea răspunsului token cu token în UI, în timp real, fără a aștepta răspunsul complet |
-| **Profil / Persona** | Datele utilizatorului: stack curent, skill-uri cu nivel, obiectiv de carieră |
-| **Memorie** | Context persistat între sesiuni: conversații anterioare, progres, plan de învățare |
-| **System prompt** | Instrucțiuni injectate la fiecare apel LLM, construite din profil și context |
-| **Unelte (tools)** | Funcții pe care agentul le invocă singur (ex. caută notițe, actualizează plan) — Faza 3 |
-| **Modul** | Unitate de lucru în curs: o funcționalitate clară adăugată incremental |
-| **Integrare externă** | Orice serviciu terț: provider LLM, bază de date, auth, deploy, monitorizare |
+| Termen                | Definiție                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| **Agent**             | Orchestrator AI care combină system prompt, memorie și (Faza 3) unelte invocate automat   |
+| **Provider**          | Serviciu extern de LLM (OpenAI, Anthropic, Google etc.) apelat exclusiv de pe server      |
+| **Streaming**         | Livrarea răspunsului token cu token în UI, în timp real, fără a aștepta răspunsul complet |
+| **Profil / Persona**  | Datele utilizatorului: stack curent, skill-uri cu nivel, obiectiv de carieră              |
+| **Memorie**           | Context persistat între sesiuni: conversații anterioare, progres, plan de învățare        |
+| **System prompt**     | Instrucțiuni injectate la fiecare apel LLM, construite din profil și context              |
+| **Unelte (tools)**    | Funcții pe care agentul le invocă singur (ex. caută notițe, actualizează plan) — Faza 3   |
+| **Modul**             | Unitate de lucru în curs: o funcționalitate clară adăugată incremental                    |
+| **Integrare externă** | Orice serviciu terț: provider LLM, bază de date, auth, deploy, monitorizare               |
 
 ---
 
 ## 10. Reguli de mentenanță
 
 1. **Schimbare de scope** → actualizează secțiunea de fază relevantă din acest fișier **înainte** sau **odată cu** implementarea
-2. **Integrare externă nouă** → creează `docs/<integrare>/README.md` cu pașii manuali (cont, cheie, env vars, dashboard, cost)
+2. **Integrare externă nouă** → creează `docs/<integrare>/README.md` (după șablonul din `docs/_template/`), adaugă rând în tabelul din `docs/README.md`, actualizează `.env.example` — **în același commit** cu codul
 3. **Decizie arhitecturală** → notează în secțiunea Stack tehnic sau adaugă subsecțiune scurtă
 4. **Criteriu de acceptare nou** → adaugă în secțiunea 6
 5. **Nu duplica** cerințele în README sau în instrucțiunile pentru agenți — trimite la acest fișier
 
 ---
 
-*Ultima actualizare: Faza 0 — fundația documentației*
+_Ultima actualizare: Faza 1.1 — schelet Next.js_

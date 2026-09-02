@@ -29,16 +29,22 @@ acceptance criteria, and glossary.
 
 ### 2. External integration documentation
 
-Every time you add an external integration, create `docs/<integration>/README.md` with the
-**manual steps the user must perform**:
+Every time you add an external integration:
 
-| Include | Do NOT include |
-|---------|----------------|
-| Where to create an account | Real API keys or secrets |
-| Where to generate the API key | Actual env values |
-| Env variable **names** (e.g. `OPENAI_API_KEY`) | Passwords or tokens |
-| Dashboard configuration steps | |
-| Cost estimate + link to official pricing | |
+1. Create `docs/<integration>/README.md` using the template at [`docs/_template/README.md`](_template/README.md)
+2. Add a row to the integrations table in [`docs/README.md`](README.md)
+3. Update `.env.example` with the new variable names
+4. Do all of the above **in the same commit** as the integration code
+
+Manual steps the user must perform (document in the integration README):
+
+| Include                                        | Do NOT include           |
+| ---------------------------------------------- | ------------------------ |
+| Where to create an account                     | Real API keys or secrets |
+| Where to generate the API key                  | Actual env values        |
+| Env variable **names** (e.g. `OPENAI_API_KEY`) | Passwords or tokens      |
+| Dashboard configuration steps                  |                          |
+| Cost estimate + link to official pricing       |                          |
 
 Integrations that require this: LLM providers, databases, authentication, deploy platforms,
 monitoring services.
@@ -55,24 +61,27 @@ is lost on reinstall, new machine, or deploy.
 
 ### 4. Language conventions
 
-| Artifact | Language |
-|----------|----------|
-| `docs/requirements.md` | Romanian |
+| Artifact                       | Language                             |
+| ------------------------------ | ------------------------------------ |
+| `docs/requirements.md`         | Romanian                             |
 | `docs/<integration>/README.md` | Romanian (manual steps for the user) |
-| Agent instructions (this file) | English |
-| Code, comments, identifiers | English |
+| Agent instructions (this file) | English                              |
+| Code — explanatory comments    | Romanian (why, not what)             |
+| Code — identifiers             | English                              |
 
 ---
 
 ## Technical stack
 
-| Component | Technology | From phase |
-|-----------|------------|------------|
-| Web framework | Next.js (App Router) | 1 |
-| Language | TypeScript | 1 |
-| LLM integration | Vercel AI SDK | 1 |
-| LLM calls | Server-side only | 1 |
-| MVP users | Single-user (no auth) | 1–2 |
+| Component       | Technology                             | From phase |
+| --------------- | -------------------------------------- | ---------- |
+| Web framework   | Next.js 16 (App Router)                | 1.1        |
+| Language        | TypeScript                             | 1.1        |
+| Styling         | Tailwind CSS v4 + shadcn/ui            | 1.1        |
+| Formatting      | Prettier + prettier-plugin-tailwindcss | 1.1        |
+| LLM integration | Vercel AI SDK                          | 1.2        |
+| LLM calls       | Server-side only                       | 1.2        |
+| MVP users       | Single-user (no auth)                  | 1–2        |
 
 ### Security
 
@@ -82,13 +91,14 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 0 (documentation)
+## Current phase: 1.1 (Next.js scaffold)
 
-**In scope:** requirements, agent instructions, sync script, README, `.gitignore`, `.env.example`.
+**In scope:** Next.js app shell, client/server components, `/api/hello` env demo, Prettier,
+shadcn/ui button, integration docs structure.
 
-**Out of scope:** application code, LLM integration, database.
+**Out of scope:** LLM agent, chat streaming, profile, external integrations.
 
-When phase 1 begins, re-read `docs/requirements.md` section 5 (Faza 1) before writing code.
+When phase 1.2 begins (AI agent), re-read `docs/requirements.md` section 5 (Faza 1.2).
 
 ---
 
@@ -114,14 +124,24 @@ When phase 1 begins, re-read `docs/requirements.md` section 5 (Faza 1) before wr
 
 ## Glossary (aligned with requirements)
 
-| Term | Meaning |
-|------|---------|
-| **Agent** | AI orchestrator with system prompt, memory, and (phase 3) tools |
-| **Provider** | External LLM service called server-side |
-| **Streaming** | Token-by-token response delivery in the UI |
-| **Profile / Persona** | User data: stack, skills + level, career goal |
-| **Memory** | Persisted context across sessions |
-| **System prompt** | Instructions injected from profile at each LLM call |
-| **Tools** | Functions the agent invokes autonomously (phase 3) |
+| Term                  | Meaning                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| **Agent**             | AI orchestrator with system prompt, memory, and (phase 3) tools |
+| **Provider**          | External LLM service called server-side                         |
+| **Streaming**         | Token-by-token response delivery in the UI                      |
+| **Profile / Persona** | User data: stack, skills + level, career goal                   |
+| **Memory**            | Persisted context across sessions                               |
+| **System prompt**     | Instructions injected from profile at each LLM call             |
+| **Tools**             | Functions the agent invokes autonomously (phase 3)              |
 
 Full glossary: [`docs/requirements.md` §9](requirements.md#9-glosar).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
