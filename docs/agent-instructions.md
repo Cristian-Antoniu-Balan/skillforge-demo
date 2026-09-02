@@ -76,8 +76,9 @@ is lost on reinstall, new machine, or deploy.
 | Language        | TypeScript                             | 1.1        |
 | Styling         | Tailwind CSS v4 + shadcn/ui            | 1.1        |
 | Formatting      | Prettier + prettier-plugin-tailwindcss | 1.1        |
-| LLM integration | Vercel AI SDK                          | 1.2        |
-| LLM calls       | Server-side only                       | 1.2        |
+| Client state    | Zustand + persist (localStorage)       | 1.2        |
+| LLM integration | Vercel AI SDK                          | 1.3        |
+| LLM calls       | Server-side only                       | 1.3        |
 | MVP users       | Single-user (no auth)                  | 1–2        |
 
 ### Security
@@ -88,14 +89,13 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.1 (Next.js scaffold)
+## Current phase: 1.2 (full UI with mock data)
 
-**In scope:** Next.js app shell, client/server components, `/api/hello` env demo, Prettier,
-shadcn/ui button, integration docs structure.
+**In scope:** complete chat UI, sidebar, settings dialog, Zustand store, mock data in `src/lib/mock/`.
 
-**Out of scope:** LLM agent, chat streaming, profile, external integrations.
+**Out of scope:** real LLM calls, `/api/chat`, API keys, LLM SDKs.
 
-When phase 1.2 begins (AI agent), re-read `docs/requirements.md` section 5 (Faza 1.2).
+When phase 1.3 begins (AI agent), re-read `docs/requirements.md` section 5 (Faza 1.3).
 
 ---
 

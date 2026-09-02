@@ -48,4 +48,6 @@ automat din sursa canonică:
 
 ## Stare curentă
 
-**Faza 1.1** — schelet Next.js livrat. Următorul pas: agent AI + chat streaming (Faza 1.2).
+**Faza 1.2** — interfață completă cu date mock. Următorul pas: agent AI + streaming LLM (Faza 1.3).
+
+Deploy: proiectul e pregătit pentru Vercel (`npm run build` trece fără variabile de mediu obligatorii).

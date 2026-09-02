@@ -106,25 +106,39 @@ Faza 1 este împărțită în sub-pași; fiecare livrează o bucată clară pest
 - Profil utilizator
 - Integrări externe active (doar formatul documentației)
 
-#### Faza 1.2 — Agent + chat contextual minimal _(următorul pas)_
+#### Faza 1.2 — Interfață completă (date mock) _(livrat)_
 
 **In scope:**
 
-- Profil single-user persistat local (fișier JSON sau SQLite — se documentează la implementare)
-- Formular simplu pentru editarea profilului (stack, skills + nivel, obiectiv)
-- UI chat cu **răspuns streaming** (Vercel AI SDK)
-- Un provider LLM (ex. Anthropic), apelat exclusiv de pe server via `/api/chat`
-- System prompt construit din câmpurile profilului
-- Documentație manuală: `docs/<provider>/README.md` + rând în index
+- UI complet SkillForge: sidebar (New, Chats and tasks, utilizator), header, chat, preferințe (`Dialog`)
+- Date inventate în `src/lib/mock/` — profil + conversații; înlocuire ușoară la integrarea LLM
+- Stare globală: Zustand + `persist` (cheie `skillforge-app`)
+- Stări UI: empty state, skeleton, indicator „scrie…", alert erori
+- Mesaje mock navigabile; trimitere simulează răspuns assistant (fără LLM)
+- Responsive: sidebar în `Sheet` pe mobil
+- Temă system/light/dark — doar din Preferințe → Appearance
+- **Fără** apel LLM, `/api/chat`, chei API
 
 **Out of scope:**
 
-- Memorie între sesiuni (conversațiile nu persistă încă)
-- Plan de învățare structurat
+- Agent AI real, streaming LLM
+- Persistență server / DB
+
+#### Faza 1.3 — Agent + chat contextual minimal _(următorul pas)_
+
+**In scope:**
+
+- Răspuns **streaming** (Vercel AI SDK) — înlocuiește simularea mock din store
+- Provider LLM (ex. Anthropic) apelat de pe server via `/api/chat`
+- System prompt din profil (deja editabil în UI)
+- Documentație: `docs/<provider>/README.md` + rând în index
+
+**Out of scope:**
+
+- Plan de învățare structurat separat
 - Unelte agent (tool calling)
-- Al doilea provider LLM
+- Al doilea provider LLM activ
 - Autentificare, multi-user
-- Deploy în producție
 
 ---
 
@@ -240,8 +254,9 @@ La adăugarea unei funcționalități noi, documentează:
 | Limbaj                  | TypeScript                             | 1.1        |
 | Styling                 | Tailwind CSS v4 + shadcn/ui            | 1.1        |
 | Formatare               | Prettier + prettier-plugin-tailwindcss | 1.1        |
-| LLM integration         | Vercel AI SDK                          | 1.2        |
-| Persistență profil      | JSON file sau SQLite                   | 1.2        |
+| Stare client            | Zustand + persist (localStorage)       | 1.2        |
+| LLM integration         | Vercel AI SDK                          | 1.3        |
+| Persistență profil      | Zustand (UI); server la 1.3+           | 1.2        |
 | Persistență conversații | SQLite sau JSON                        | 2          |
 | Deploy                  | TBD (Vercel recomandat)                | 3          |
 
@@ -273,4 +288,4 @@ La adăugarea unei funcționalități noi, documentează:
 
 ---
 
-_Ultima actualizare: Faza 1.1 — schelet Next.js_
+_Ultima actualizare: Faza 1.2 — interfață completă (mock)_

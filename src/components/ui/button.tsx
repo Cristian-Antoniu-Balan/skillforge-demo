@@ -1,5 +1,3 @@
-// Componentă UI din shadcn — de aici încolo nu scriem butoane de mână.
-// Variantele (variant, size) vin din class-variance-authority, nu din CSS ad-hoc.
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 
