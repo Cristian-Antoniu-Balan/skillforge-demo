@@ -35,7 +35,7 @@ export interface Conversation {
 
 export type ThemeMode = "system" | "light" | "dark";
 
-export type SettingsTab = "general" | "profile" | "providers";
+export type SettingsTab = "general" | "profile" | "providers" | "about";
 
 export interface ProviderConfig {
   id: string;

@@ -124,6 +124,21 @@ Faza 1 este împărțită în sub-pași; fiecare livrează o bucată clară pest
 - Agent AI real, streaming LLM
 - Persistență server / DB
 
+#### Faza 1.2b — Streaming SSE demo („Despre aplicație") _(livrat)_
+
+Primul pas cu date care curg de pe server în timp real — fără LLM, fără chei API.
+Clientul citește SSE de mână (`getReader` + buffer); la 1.3 același tip de protocol vine de la model.
+
+**In scope:**
+
+- Route Handler `GET /api/about` — `ReadableStream` + SSE (`text/event-stream`), bucăți cu pauză ~120ms, payload `JSON.stringify`, final `data: [DONE]`
+- Secțiune Preferințe → „Despre aplicație": text progresiv, cursor, buton „Reia", AbortController la demontare
+- Layout: fereastră fixă; bara de jos (sursă + Reia) ancorată la baza panoului; textul scrollează intern
+
+**Out of scope:**
+
+- LLM, `/api/chat`, Vercel AI SDK, chei API
+
 #### Faza 1.3 — Agent + chat contextual minimal _(următorul pas)_
 
 **In scope:**

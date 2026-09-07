@@ -92,9 +92,12 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.2 (full UI with mock data)
+## Current phase: 1.2b (SSE streaming demo — Despre)
 
-**In scope:** complete chat UI, sidebar, settings dialog, Zustand store, mock data in `src/lib/mock/`.
+**In scope:** Preferințe → „Despre aplicație"; `GET /api/about` SSE stream without LLM;
+manual client reader (`getReader` + buffer); fixed settings layout with bottom replay bar.
+
+**Still from 1.2:** complete chat UI, sidebar, settings, Zustand store, mock data in `src/lib/mock/`.
 
 **Out of scope:** real LLM calls, `/api/chat`, API keys, LLM SDKs.
 
