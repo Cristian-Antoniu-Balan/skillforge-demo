@@ -22,7 +22,7 @@ Fiecare serviciu terț (provider LLM, DB, auth, deploy, monitorizare) are propri
 
 | Integrare                                              | Pas / fază | Link |
 | ------------------------------------------------------ | ---------- | ---- |
-| _(gol — se completează pe măsură ce apar integrările)_ |            |      |
+| Anthropic (Claude)                                     | 1.3        | [`docs/anthropic/README.md`](anthropic/README.md) |
 
 ## Șablon
 

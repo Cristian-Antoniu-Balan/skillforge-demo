@@ -1,7 +1,6 @@
 "use client";
 
-// Selector provider + model — UI pregătit pentru compararea costurilor la integrarea LLM.
-// Acum doar salvează alegerea în store; fără apel API real.
+// Selector model Anthropic — același ID e trimis la POST /api/chat.
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { mockProviders, useAppStore } from "@/store/useAppStore";
@@ -18,7 +17,7 @@ export function ProvidersForm() {
       <div>
         <h2 className="text-lg font-semibold">Providere</h2>
         <p className="text-sm text-muted-foreground">
-          Providerul LLM activ — cheia API vine la pasul următor, apelat doar de pe server.
+          Modelul ales aici e cel folosit la generare (afișat și în caseta de chat).
         </p>
       </div>
 

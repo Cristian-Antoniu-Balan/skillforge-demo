@@ -1,5 +1,3 @@
-"use client";
-
 // Stare goală — conversație nouă fără mesaje; salut personalizat + sugestii care pre-completează inputul.
 import { Sparkles } from "lucide-react";
 

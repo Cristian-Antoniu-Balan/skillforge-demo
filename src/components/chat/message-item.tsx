@@ -1,25 +1,31 @@
-"use client";
-
-// Un mesaj individual — bule aliniate stânga/dreapta + copy în interior cu toast.
+// Un mesaj UIMessage — text din parts; bule stânga/dreapta + copy.
+import type { UIMessage } from "ai";
 import { Bot, Copy, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 
 interface MessageItemProps {
-  message: Message;
+  message: UIMessage;
+}
+
+function getMessageText(message: UIMessage) {
+  return message.parts
+    .filter(part => part.type === "text")
+    .map(part => part.text)
+    .join("");
 }
 
 export function MessageItem({ message }: MessageItemProps) {
   const profileName = useAppStore(state => state.profile.name);
   const isUser = message.role === "user";
+  const content = getMessageText(message);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
+    await navigator.clipboard.writeText(content);
     toast.success("Mesaj copiat în clipboard");
   };
 
@@ -39,19 +45,21 @@ export function MessageItem({ message }: MessageItemProps) {
             isUser ? "bg-primary text-primary-foreground" : "bg-muted"
           )}
         >
-          {message.content}
-          <Tooltip>
-            <TooltipTrigger
-              className={cn(
-                "absolute top-2 rounded-md p-1 opacity-0 transition-opacity group-hover/bubble:opacity-100",
-                isUser ? "left-2 hover:bg-primary-foreground/10" : "right-2 hover:bg-background/60"
-              )}
-              onClick={handleCopy}
-            >
-              <Copy className="size-3.5" />
-            </TooltipTrigger>
-            <TooltipContent>Copiază</TooltipContent>
-          </Tooltip>
+          {content}
+          {content && (
+            <Tooltip>
+              <TooltipTrigger
+                className={cn(
+                  "absolute top-2 rounded-md p-1 opacity-0 transition-opacity group-hover/bubble:opacity-100",
+                  isUser ? "left-2 hover:bg-primary-foreground/10" : "right-2 hover:bg-background/60"
+                )}
+                onClick={handleCopy}
+              >
+                <Copy className="size-3.5" />
+              </TooltipTrigger>
+              <TooltipContent>Copiază</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>

@@ -1,16 +1,13 @@
 // Conversații inventate — înlocuite dintr-o singură atingere când vine backend-ul / LLM-ul.
+import { ANTHROPIC_CHAT_MODELS } from "@/lib/llm/models";
 import type { Conversation, ProviderConfig } from "@/lib/types";
 
 export const mockProviders: ProviderConfig[] = [
   {
     id: "anthropic",
     name: "Anthropic",
-    models: ["claude-sonnet-4-20250514", "claude-haiku-3-5-20241022"]
-  },
-  {
-    id: "openai",
-    name: "OpenAI",
-    models: ["gpt-4o", "gpt-4o-mini"]
+    // Aceleași ID-uri pe care le acceptă POST /api/chat
+    models: [...ANTHROPIC_CHAT_MODELS]
   }
 ];
 

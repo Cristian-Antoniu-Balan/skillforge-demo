@@ -139,14 +139,18 @@ Clientul citește SSE de mână (`getReader` + buffer); la 1.3 același tip de p
 
 - LLM, `/api/chat`, Vercel AI SDK, chei API
 
-#### Faza 1.3 — Agent + chat contextual minimal _(următorul pas)_
+#### Faza 1.3 — Agent + chat contextual minimal _(în curs)_
+
+Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe server.
 
 **In scope:**
 
-- Răspuns **streaming** (Vercel AI SDK) — înlocuiește simularea mock din store
-- Provider LLM (ex. Anthropic) apelat de pe server via `/api/chat`
-- System prompt din profil (deja editabil în UI)
-- Documentație: `docs/<provider>/README.md` + rând în index
+- Route Handler `POST /api/chat` — `runtime = "nodejs"`; `streamText` + `@ai-sdk/anthropic` (`claude-haiku-4-5`); răspuns via `toUIMessageStreamResponse()`
+- Cheie doar din `process.env` (fără `NEXT_PUBLIC_`); lipsă cheie → `400` JSON lizibil (nu 500, nu crash la build); erori provider traduse prin `onError`
+- Client: `useChat` + `DefaultChatTransport({ api: "/api/chat" })` — fără `fetch` manual; input controlat; `key` = id mesaj; scroll-to-bottom + focus după trimitere
+- `status` / `stop()` / `error` în UI; istoricul în state-ul `useChat` (fără DB)
+- System prompt din profilul editabil în Preferințe
+- Documentație: `docs/anthropic/README.md` + rând în index + `.env.example`
 
 **Out of scope:**
 
@@ -154,6 +158,7 @@ Clientul citește SSE de mână (`getReader` + buffer); la 1.3 același tip de p
 - Unelte agent (tool calling)
 - Al doilea provider LLM activ
 - Autentificare, multi-user
+- Persistență conversații pe server (Faza 2)
 
 ---
 
@@ -303,4 +308,4 @@ La adăugarea unei funcționalități noi, documentează:
 
 ---
 
-_Ultima actualizare: Faza 1.2 — interfață completă (mock)_
+_Ultima actualizare: Faza 1.3 — agent + chat streaming (Anthropic)_

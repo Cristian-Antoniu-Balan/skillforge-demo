@@ -1,9 +1,7 @@
-"use client";
-
-// Composer-ul chat — cutie cu bordură; Enter trimite, Shift+Enter linie nouă.
-// Send/Stop comută după isTyping; provider+model afișate ca la claude.ai (mock).
+// Composer-ul chat — input controlat; Enter trimite, Shift+Enter linie nouă.
+// Send/Stop comută după isBusy (submitted | streaming).
 import { ChevronDown, Plus, Send, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,16 +10,16 @@ import { mockProviders, useAppStore } from "@/store/useAppStore";
 interface ChatInputProps {
   draft: string;
   onDraftChange: (value: string) => void;
+  onSend: () => void;
+  onStop: () => void;
+  isBusy: boolean;
+  inputRef: RefObject<HTMLTextAreaElement | null>;
 }
 
-export function ChatInput({ draft, onDraftChange }: ChatInputProps) {
-  const sendMessage = useAppStore(state => state.sendMessage);
-  const stopGeneration = useAppStore(state => state.stopGeneration);
-  const isTyping = useAppStore(state => state.isTyping);
+export function ChatInput({ draft, onDraftChange, onSend, onStop, isBusy, inputRef }: ChatInputProps) {
   const selectedProviderId = useAppStore(state => state.selectedProviderId);
   const selectedModel = useAppStore(state => state.selectedModel);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -29,7 +27,7 @@ export function ChatInput({ draft, onDraftChange }: ChatInputProps) {
   const provider = mockProviders.find(p => p.id === selectedProviderId);
 
   const adjustHeight = () => {
-    const el = textareaRef.current;
+    const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
@@ -37,18 +35,12 @@ export function ChatInput({ draft, onDraftChange }: ChatInputProps) {
 
   useEffect(() => {
     adjustHeight();
-  }, [draft]);
-
-  const handleSend = () => {
-    if (!draft.trim() || isTyping) return;
-    sendMessage(draft);
-    onDraftChange("");
-  };
+  }, [draft, inputRef]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      handleSend();
+      onSend();
     }
   };
 
@@ -62,7 +54,7 @@ export function ChatInput({ draft, onDraftChange }: ChatInputProps) {
           onChange={event => onDraftChange(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Spune-i lui SkillForge la ce lucrezi…"
-          ref={textareaRef}
+          ref={inputRef}
           rows={1}
           value={draft}
         />
@@ -80,15 +72,15 @@ export function ChatInput({ draft, onDraftChange }: ChatInputProps) {
               <span className="max-w-[8rem] truncate">{selectedModel}</span>
               <ChevronDown className="size-3" />
             </button>
-            {isTyping ? (
-              <Button aria-label="Stop" onClick={stopGeneration} size="icon-sm" variant="default">
+            {isBusy ? (
+              <Button aria-label="Stop" onClick={onStop} size="icon-sm" variant="default">
                 <Square className="size-4" />
               </Button>
             ) : (
               <Button
                 aria-label="Trimite"
                 disabled={!draft.trim()}
-                onClick={handleSend}
+                onClick={onSend}
                 size="icon-sm"
                 variant="default"
               >
@@ -99,7 +91,7 @@ export function ChatInput({ draft, onDraftChange }: ChatInputProps) {
         </div>
       </div>
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        SkillForge folosește date mock — răspunsurile nu vin de la un model real încă.
+        Răspunsurile vin de la Claude (Anthropic) prin `/api/chat` — cheia rămâne pe server.
       </p>
     </div>
   );

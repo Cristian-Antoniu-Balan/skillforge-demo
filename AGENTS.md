@@ -92,16 +92,14 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.2b (SSE streaming demo — Despre)
+## Current phase: 1.3 (Agent + chat streaming)
 
-**In scope:** Preferințe → „Despre aplicație"; `GET /api/about` SSE stream without LLM;
-manual client reader (`getReader` + buffer); fixed settings layout with bottom replay bar.
+**In scope:** `POST /api/chat` with Anthropic (`claude-haiku-4-5`) via Vercel AI SDK;
+`useChat` + `DefaultChatTransport`; system prompt from profile; docs in `docs/anthropic/`.
 
-**Still from 1.2:** complete chat UI, sidebar, settings, Zustand store, mock data in `src/lib/mock/`.
+**Out of scope:** tool calling, second provider, auth, server-side conversation persistence (phase 2).
 
-**Out of scope:** real LLM calls, `/api/chat`, API keys, LLM SDKs.
-
-When phase 1.3 begins (AI agent), re-read `docs/requirements.md` section 5 (Faza 1.3).
+Re-read `docs/requirements.md` section 5 (Faza 1.3) before changing scope.
 
 ---
 

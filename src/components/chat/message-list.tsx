@@ -1,19 +1,17 @@
-"use client";
-
-// Lista de mesaje + indicator „scrie…” — scroll automat la ultimul mesaj.
+// Lista de mesaje — key = id (nu index); scroll automat la ultimul mesaj.
+import type { UIMessage } from "ai";
 import { useEffect, useRef } from "react";
 
 import { MessageItem } from "@/components/chat/message-item";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Message } from "@/lib/types";
 
 interface MessageListProps {
-  messages: Message[];
-  isLoading: boolean;
-  isTyping: boolean;
+  messages: UIMessage[];
+  isBusy: boolean;
+  status?: "submitted" | "streaming" | "ready" | "error";
 }
 
-function TypingIndicator() {
+function TypingIndicator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2">
       <div className="flex gap-1">
@@ -21,19 +19,19 @@ function TypingIndicator() {
         <span className="size-2 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:150ms]" />
         <span className="size-2 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:300ms]" />
       </div>
-      <span className="text-sm text-muted-foreground">SkillForge scrie…</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
     </div>
   );
 }
 
-export function MessageList({ messages, isLoading, isTyping }: MessageListProps) {
+export function MessageList({ messages, isBusy, status }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isBusy]);
 
-  if (isLoading) {
+  if (messages.length === 0 && !isBusy) {
     return (
       <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
         {[1, 2, 3].map(i => (
@@ -49,12 +47,15 @@ export function MessageList({ messages, isLoading, isTyping }: MessageListProps)
     );
   }
 
+  // Doar „submitted” — în streaming textul apare deja în ultimul mesaj.
+  const showWaiting = status === "submitted";
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
       {messages.map(message => (
         <MessageItem key={message.id} message={message} />
       ))}
-      {isTyping && <TypingIndicator />}
+      {showWaiting && <TypingIndicator label="SkillForge scrie…" />}
       <div ref={bottomRef} />
     </div>
   );

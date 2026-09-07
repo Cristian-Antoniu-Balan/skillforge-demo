@@ -1,31 +1,24 @@
-// Starea globală a aplicației — Zustand + persist ca lista de conversații să supraviețuiască refresh-ului.
-// Mock-ul e doar valoarea inițială; la pasul următor înlocuim acțiunile (sendMessage) cu apeluri reale.
+// Starea globală — profil, temă, sidebar. Mesajele chat trăiesc în useChat (Faza 1.3).
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { mockAssistantReplies, mockConversations, mockProviders } from "@/lib/mock/conversations";
+import { mockProviders } from "@/lib/mock/conversations";
 import { mockProfile } from "@/lib/mock/profile";
-import type { AppStore, Conversation, Message, Profile, ThemeMode } from "@/lib/types";
-
-let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+import { DEFAULT_CHAT_MODEL, isAnthropicChatModel } from "@/lib/llm/models";
+import type { AppStore, Conversation, Profile, ThemeMode } from "@/lib/types";
 
 function generateId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function titleFromMessage(content: string) {
-  const trimmed = content.trim();
-  return trimmed.length > 42 ? `${trimmed.slice(0, 42)}…` : trimmed || "Conversație nouă";
-}
-
 export const useAppStore = create<AppStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       profile: mockProfile,
       theme: "system",
       selectedProviderId: mockProviders[0].id,
       selectedModel: mockProviders[0].models[0],
-      conversations: mockConversations,
+      conversations: [],
       activeConversationId: null,
       isLoading: false,
       isTyping: false,
@@ -74,73 +67,10 @@ export const useAppStore = create<AppStore>()(
           return { conversations, activeConversationId };
         }),
 
-      stopGeneration: () => {
-        if (typingTimeout) {
-          clearTimeout(typingTimeout);
-          typingTimeout = null;
-        }
-        set({ isTyping: false });
-      },
-
-      simulateLoading: () => {
-        set({ isLoading: true, error: null });
-        setTimeout(() => set({ isLoading: false }), 800);
-      },
-
-      sendMessage: content => {
-        const trimmed = content.trim();
-        if (!trimmed) return;
-
-        const state = get();
-        if (state.isTyping) return;
-
-        let conversationId = state.activeConversationId;
-        if (!conversationId) {
-          conversationId = get().createConversation();
-        }
-
-        const userMessage: Message = {
-          id: generateId("msg"),
-          role: "user",
-          content: trimmed,
-          createdAt: new Date().toISOString()
-        };
-
-        set(current => ({
-          conversations: current.conversations.map(c => {
-            if (c.id !== conversationId) return c;
-            const isFirst = c.messages.length === 0;
-            return {
-              ...c,
-              title: isFirst ? titleFromMessage(trimmed) : c.title,
-              messages: [...c.messages, userMessage],
-              updatedAt: new Date().toISOString()
-            };
-          }),
-          isTyping: true,
-          error: null
-        }));
-
-        const replyIndex = Math.floor(Math.random() * mockAssistantReplies.length);
-        typingTimeout = setTimeout(() => {
-          const assistantMessage: Message = {
-            id: generateId("msg"),
-            role: "assistant",
-            content: mockAssistantReplies[replyIndex],
-            createdAt: new Date().toISOString()
-          };
-
-          set(current => ({
-            conversations: current.conversations.map(c =>
-              c.id === conversationId
-                ? { ...c, messages: [...c.messages, assistantMessage], updatedAt: new Date().toISOString() }
-                : c
-            ),
-            isTyping: false
-          }));
-          typingTimeout = null;
-        }, 1500);
-      }
+      // Păstrate pe tip pentru compatibilitate UI; generarea e în useChat + /api/chat.
+      stopGeneration: () => set({ isTyping: false }),
+      simulateLoading: () => {},
+      sendMessage: () => {}
     }),
     {
       name: "skillforge-app",
@@ -151,7 +81,16 @@ export const useAppStore = create<AppStore>()(
         selectedModel: state.selectedModel,
         conversations: state.conversations,
         activeConversationId: state.activeConversationId
-      })
+      }),
+      // localStorage vechi poate avea OpenAI / ID-uri scoase — aliniem la modelele reale din /api/chat
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted as Partial<AppStore>) };
+        if (!isAnthropicChatModel(merged.selectedModel)) {
+          merged.selectedModel = DEFAULT_CHAT_MODEL;
+          merged.selectedProviderId = "anthropic";
+        }
+        return merged;
+      }
     }
   )
 );
