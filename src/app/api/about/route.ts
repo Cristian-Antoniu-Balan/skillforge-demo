@@ -29,7 +29,7 @@ export async function GET() {
           // JSON.stringify: \n\n e separatorul SSE; un text cu linii noi ar rupe protocolul.
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
           // Pauză intenționată — fără ea, browserul ar primi totul aproape instant și efectul dispare.
-          await sleep(1200);
+          await sleep(200);
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
