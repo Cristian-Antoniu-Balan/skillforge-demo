@@ -18,7 +18,7 @@ function providerErrorMessage(error: unknown) {
       return "Limită de cereri atinsă la Anthropic. Încearcă din nou peste puțin timp.";
     }
     if (message.includes("authentication") || message.includes("api key") || message.includes("401")) {
-      return "Cheia Anthropic este invalidă sau a fost revocată. Verifică ANTHROPIC_API_KEY în .env.local.";
+      return "Cheia Anthropic este invalidă sau a fost revocată. Verifică ANTHROPIC_API_KEY (Vercel Environment Variables sau .env.local) și fă Redeploy dacă ai schimbat-o pe Vercel.";
     }
     return error.message;
   }
@@ -26,12 +26,13 @@ function providerErrorMessage(error: unknown) {
 }
 
 export async function POST(req: Request) {
+  // Env la request — nu la import: build-ul și UI-ul trebuie să meargă și fără cheie.
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return Response.json(
       {
         error:
-          "Lipsește ANTHROPIC_API_KEY. Adaugă cheia în .env.local (vezi docs/anthropic/README.md) și repornește serverul."
+          "Provider neconfigurat. Lipsește ANTHROPIC_API_KEY — seteaz-o în Vercel (Production + Preview) sau în .env.local; vezi docs/vercel/README.md."
       },
       { status: 400 }
     );

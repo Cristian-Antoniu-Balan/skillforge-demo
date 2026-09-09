@@ -109,15 +109,17 @@ export function Chat() {
   }
 
   const showEmpty = messages.length === 0 && !isBusy;
+  const errorText = error ? formatChatError(error) : null;
+  const isUnconfiguredProvider = errorText?.startsWith("Provider neconfigurat") ?? false;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {error && (
+      {errorText && (
         <div className="px-4 pt-4">
           <Alert variant="destructive">
-            <AlertTitle>Eroare</AlertTitle>
+            <AlertTitle>{isUnconfiguredProvider ? "Provider neconfigurat" : "Eroare"}</AlertTitle>
             <AlertDescription className="flex items-center justify-between gap-4">
-              <span>{formatChatError(error)}</span>
+              <span>{errorText}</span>
               <button className="text-sm underline" onClick={() => clearError()} type="button">
                 Închide
               </button>

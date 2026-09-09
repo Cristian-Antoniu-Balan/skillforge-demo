@@ -77,13 +77,7 @@ export function ChatInput({ draft, onDraftChange, onSend, onStop, isBusy, inputR
                 <Square className="size-4" />
               </Button>
             ) : (
-              <Button
-                aria-label="Trimite"
-                disabled={!draft.trim()}
-                onClick={onSend}
-                size="icon-sm"
-                variant="default"
-              >
+              <Button aria-label="Trimite" disabled={!draft.trim()} onClick={onSend} size="icon-sm" variant="default">
                 <Send className="size-4" />
               </Button>
             )}

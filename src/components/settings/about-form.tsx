@@ -45,9 +45,7 @@ export function AboutForm() {
             // După abort (Reia / demontare) nu mai scriem state — altfel am lipi text pe run-ul nou.
             if (abortController.signal.aborted) return;
 
-            const line = event
-              .split("\n")
-              .find(part => part.startsWith("data: "));
+            const line = event.split("\n").find(part => part.startsWith("data: "));
             if (!line) continue;
 
             const payload = line.slice("data: ".length);
@@ -99,14 +97,11 @@ export function AboutForm() {
         {status === "error" ? (
           <p className="text-sm text-destructive">Nu am putut încărca descrierea. Încearcă din nou cu Reia.</p>
         ) : (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
             {text}
             {status === "streaming" && (
               // Cursor vizual cât curge stream-ul — confirmă că încă primim date.
-              <span
-                aria-hidden
-                className="ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse bg-foreground"
-              />
+              <span aria-hidden className="ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse bg-foreground" />
             )}
           </p>
         )}

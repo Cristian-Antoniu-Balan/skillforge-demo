@@ -139,7 +139,7 @@ Clientul citește SSE de mână (`getReader` + buffer); la 1.3 același tip de p
 
 - LLM, `/api/chat`, Vercel AI SDK, chei API
 
-#### Faza 1.3 — Agent + chat contextual minimal _(în curs)_
+#### Faza 1.3 — Agent + chat contextual minimal _(livrat)_
 
 Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe server.
 
@@ -162,6 +162,30 @@ Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe 
 - Autentificare, multi-user
 - Persistență conversații pe server (Faza 2)
 
+#### Faza 1.4 — Deploy Vercel _(în curs)_
+
+Publicare precoce: aplicația online pe un link partajabil, cu chei doar în platformă.
+Mutat din Faza 3 (unde rămâne doar monitorizarea) — problemele de mediu se descoperă ieftin pe puține funcționalități.
+
+**In scope:**
+
+- Repo pe GitHub → proiect importat în Vercel (framework detectat automat; fără `vercel.json` cât timp default-urile merg)
+- Preview automat pe fiecare push de branch; Production pe `main`
+- Variabile doar în Vercel → Project → Settings → Environment Variables (Production **și** Preview); niciodată în repo
+- `.env.local` gitignorat; `.env.example` cu placeholder-e — singurul fișier de variabile din repo
+- Build trece **fără** chei: nicio citire de cheie la nivel de modul, niciun `throw` la import; verificările în handler; lipsă cheie = „provider neconfigurat" (stare normală)
+- După adăugare/schimbare variabilă în Vercel → **Redeploy** (env se citește la request, nu la build — deploy-ul vechi nu vede valoarea nouă)
+- Documentație: `docs/vercel/README.md` (pași manuali: import, env, Redeploy, refacere pe alt calculator) + rând în index
+- Skill `pre-deploy` (`.claude/skills/` sursă, `.github/skills/` oglindă) + `scripts/sync-skills.sh`
+- `README.md`: rulare locală + link aplicație publicată
+- Verificare locală înainte de push: `npm run build` fără `.env.local`
+
+**Out of scope:**
+
+- Domeniu propriu
+- Monitorizare, analytics (Faza 3)
+- Auth, multi-user
+
 ---
 
 ### Faza 2 — Memorie și progres
@@ -178,7 +202,8 @@ Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe 
 
 - Tool calling / unelte agent
 - Comparare provideri
-- Autentificare, deploy producție
+- Autentificare
+- Deploy producție _(mutat în Faza 1.4)_
 
 ---
 
@@ -188,13 +213,13 @@ Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe 
 
 - Tool calling: agentul invocă singur funcții (caută în notițe, actualizează plan, marchează progres)
 - Al doilea provider LLM pentru comparație cost/calitate
-- Autentificare (dacă e nevoie pentru deploy multi-device)
-- Deploy în producție
+- Autentificare (dacă e nevoie pentru multi-device)
 - Monitorizare (logs, erori, cost tracking)
 - Fiecare integrare externă nouă → `docs/<integrare>/README.md`
 
 **Out of scope:**
 
+- Deploy producție _(mutat în Faza 1.4)_
 - Funcționalități sociale (profil public, sharing)
 - Marketplace de planuri
 
@@ -233,12 +258,12 @@ La adăugarea unei funcționalități noi, documentează:
 
 Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
-| Aspect             | Faza 1.3 (MVP actual)                                                                                          | Faza 2–3+                                       |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); nu stă pe serverul aplicației                  | Poate migra la DB server / cloud                |
-| Acces              | Doar pe dispozitivul/browserul respectiv                                                                       | Autentificare necesară                          |
-| Trimitere la terți | La fiecare mesaj: profilul merge în system prompt → Anthropic (necesar pentru răspunsuri contextualizate)      | Aceeași regulă + politică explicită documentată |
-| Ștergere           | Ștergere `localStorage` pentru cheia `skillforge-app` (sau DevTools → Application → Local Storage) | Endpoint/mechanism documentat                   |
+| Aspect             | Faza 1.3 (MVP actual)                                                                                     | Faza 2–3+                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); nu stă pe serverul aplicației             | Poate migra la DB server / cloud                |
+| Acces              | Doar pe dispozitivul/browserul respectiv                                                                  | Autentificare necesară                          |
+| Trimitere la terți | La fiecare mesaj: profilul merge în system prompt → Anthropic (necesar pentru răspunsuri contextualizate) | Aceeași regulă + politică explicită documentată |
+| Ștergere           | Ștergere `localStorage` pentru cheia `skillforge-app` (sau DevTools → Application → Local Storage)        | Endpoint/mechanism documentat                   |
 
 ### Costuri provider LLM
 
@@ -282,7 +307,7 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 | LLM integration         | Vercel AI SDK                          | 1.3        |
 | Persistență profil      | Zustand (UI); server la 1.3+           | 1.2        |
 | Persistență conversații | SQLite sau JSON                        | 2          |
-| Deploy                  | TBD (Vercel recomandat)                | 3          |
+| Deploy                  | Vercel                                 | 1.4        |
 
 ---
 
@@ -312,4 +337,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: Faza 1.3 — agent + chat streaming (Anthropic)_
+_Ultima actualizare: 2026-09-09 — Faza 1.4 (Deploy Vercel); deploy mutat din Faza 3_

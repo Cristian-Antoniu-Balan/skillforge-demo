@@ -79,6 +79,7 @@ is lost on reinstall, new machine, or deploy.
 | Client state    | Zustand + persist (localStorage)       | 1.2        |
 | LLM integration | Vercel AI SDK                          | 1.3        |
 | LLM calls       | Server-side only                       | 1.3        |
+| Deploy          | Vercel (Preview + Production)          | 1.4        |
 | MVP users       | Single-user (no auth)                  | 1–2        |
 
 ### Security
@@ -89,14 +90,40 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.3 (Agent + chat streaming)
+## Current phase: 1.4 (Deploy Vercel)
 
-**In scope:** `POST /api/chat` with Anthropic (`claude-haiku-4-5`) via Vercel AI SDK;
-`useChat` + `DefaultChatTransport`; system prompt from profile; docs in `docs/anthropic/`.
+**In scope:** GitHub → Vercel import; Preview per branch + Production on `main`;
+env vars only in Vercel (Production **and** Preview); build without keys;
+`docs/vercel/`; `pre-deploy` skill + `scripts/sync-skills.sh`; public URL in README.
 
-**Out of scope:** tool calling, second provider, auth, server-side conversation persistence (phase 2).
+**Out of scope:** custom domain, monitoring, analytics, auth.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.3) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.4) before changing scope.
+
+---
+
+## Agent skills
+
+| Path                             | Role                                       |
+| -------------------------------- | ------------------------------------------ |
+| `.claude/skills/<name>/SKILL.md` | **Source of truth** for project skills     |
+| `.github/skills/<name>/SKILL.md` | **Mirror** (identical content) for Copilot |
+
+- Folder name must match frontmatter `name`.
+- After editing a skill under `.claude/skills/`, run `./scripts/sync-skills.sh`.
+- `./scripts/sync-skills.sh --check` fails if mirrors drift.
+- Claude Code and Copilot read the same SKILL.md format — keep both trees identical.
+
+---
+
+## Definition of done
+
+A module/phase is done when:
+
+1. Scope in `docs/requirements.md` matches what shipped.
+2. External integrations have `docs/<integration>/README.md` + index row + `.env.example` names.
+3. `npm run build` succeeds **without** `.env.local`.
+4. **Before publish:** run the `pre-deploy` skill checklist (`.claude/skills/pre-deploy/SKILL.md`).
 
 ---
 

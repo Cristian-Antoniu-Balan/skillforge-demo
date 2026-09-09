@@ -7,19 +7,19 @@ Anthropic furnizează modelul Claude, apelat din `POST /api/chat` pentru răspun
 
 ## Cont & chei
 
-| Pas                | Unde                                                                 |
-| ------------------ | -------------------------------------------------------------------- |
-| Creare cont        | [console.anthropic.com](https://console.anthropic.com/)              |
-| Generare cheie API | Console → **API keys** → Create key                                  |
-| Scope              | Acces API la modelele Claude (inclusiv `claude-haiku-4-5`)           |
+| Pas                | Unde                                                       |
+| ------------------ | ---------------------------------------------------------- |
+| Creare cont        | [console.anthropic.com](https://console.anthropic.com/)    |
+| Generare cheie API | Console → **API keys** → Create key                        |
+| Scope              | Acces API la modelele Claude (inclusiv `claude-haiku-4-5`) |
 
 **Nu scrie cheia reală aici** — doar unde se obține.
 
 ## Variabile de mediu
 
-| Variabilă           | Fișier       | Descriere                         |
-| ------------------- | ------------ | --------------------------------- |
-| `ANTHROPIC_API_KEY` | `.env.local` | Cheia API generată în dashboard   |
+| Variabilă           | Fișier       | Descriere                       |
+| ------------------- | ------------ | ------------------------------- |
+| `ANTHROPIC_API_KEY` | `.env.local` | Cheia API generată în dashboard |
 
 Rând în `.env.example`:
 
@@ -38,16 +38,16 @@ ANTHROPIC_API_KEY=
 
 ## Cost & limite
 
-| Aspect          | Detaliu                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------ |
-| Plan            | Credite / billing în Anthropic Console                                                           |
-| Rate limits     | Depind de tier — vezi dashboard                                                                  |
+| Aspect          | Detaliu                                                                                               |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| Plan            | Credite / billing în Anthropic Console                                                                |
+| Rate limits     | Depind de tier — vezi dashboard                                                                       |
 | Cost orientativ | [Pricing oficial Anthropic](https://www.anthropic.com/pricing) — verifică sursa, prețurile se schimbă |
-| Model folosit   | `claude-haiku-4-5` (rapid / cost redus pentru curs)                                              |
+| Model folosit   | `claude-haiku-4-5` (rapid / cost redus pentru curs)                                                   |
 
 ## Verificare
 
-- Fără cheie: trimite un mesaj → alertă în UI cu text despre `ANTHROPIC_API_KEY` (status 400, nu 500).
+- Fără cheie: trimite un mesaj → alertă **Provider neconfigurat** (status 400, nu 500; UI rămâne utilizabilă).
 - Cu cheie: Preferințe → Profile (complet) → chat → Enter → text care crește; Stop oprește generarea.
 - Network: request la `/api/chat` — fără cheie în payload-ul din browser.
 

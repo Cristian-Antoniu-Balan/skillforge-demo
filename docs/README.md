@@ -20,9 +20,10 @@ Fiecare serviciu terț (provider LLM, DB, auth, deploy, monitorizare) are propri
 - În `docs/` se scriu **numele** variabilelor, nu valorile
 - La adăugarea unei integrări: creează fișierul + adaugă rândul în tabelul de mai jos
 
-| Integrare                                              | Pas / fază | Link |
-| ------------------------------------------------------ | ---------- | ---- |
-| Anthropic (Claude)                                     | 1.3        | [`docs/anthropic/README.md`](anthropic/README.md) |
+| Integrare                            | Pas / fază | Link                                              |
+| ------------------------------------ | ---------- | ------------------------------------------------- |
+| Anthropic (Claude)                   | 1.3        | [`docs/anthropic/README.md`](anthropic/README.md) |
+| Vercel (deploy Preview + Production) | 1.4        | [`docs/vercel/README.md`](vercel/README.md)       |
 
 ## Șablon
 

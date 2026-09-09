@@ -13,7 +13,7 @@ function generateId(prefix: string) {
 
 export const useAppStore = create<AppStore>()(
   persist(
-    (set) => ({
+    set => ({
       profile: mockProfile,
       theme: "system",
       selectedProviderId: mockProviders[0].id,
