@@ -149,7 +149,9 @@ Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe 
 - Cheie doar din `process.env` (fără `NEXT_PUBLIC_`); lipsă cheie → `400` JSON lizibil (nu 500, nu crash la build); erori provider traduse prin `onError`
 - Client: `useChat` + `DefaultChatTransport({ api: "/api/chat" })` — fără `fetch` manual; input controlat; `key` = id mesaj; scroll-to-bottom + focus după trimitere
 - `status` / `stop()` / `error` în UI; istoricul în state-ul `useChat` (fără DB)
-- System prompt din profilul editabil în Preferințe
+- Persona + guardrails: `src/lib/system-prompt.ts` → `buildSystemPrompt(profile)`; injectat ca `system` în `streamText` **doar pe server** (nu duplicat în client)
+- Profil tipat (`Profile` în `src/lib/types.ts`: `name`, `stack`, `skills[]` + nivel, `objective`); formular în Preferințe; client-side (Zustand + localStorage)
+- Profil trimis la fiecare mesaj prin `body` din `DefaultChatTransport` ca **funcție** (nu obiect fix la mount)
 - Documentație: `docs/anthropic/README.md` + rând în index + `.env.example`
 
 **Out of scope:**
@@ -229,12 +231,14 @@ La adăugarea unei funcționalități noi, documentează:
 
 ### Date personale (profil)
 
-| Aspect             | Faza 1–2 (MVP)                                                              | Faza 3+                                         |
-| ------------------ | --------------------------------------------------------------------------- | ----------------------------------------------- |
-| Stocare            | Locală (fișier/SQLite pe mașina de dev)                                     | Poate migra la cloud DB                         |
-| Acces              | Doar utilizatorul local                                                     | Autentificare necesară                          |
-| Trimitere la terți | Doar conținutul conversației la providerul LLM (necesar pentru funcționare) | Aceeași regulă + politică explicită documentată |
-| Ștergere           | Utilizatorul poate șterge datele local                                      | Endpoint/mechanism documentat                   |
+Profilul (nume, stack, skills, obiectiv) este **dată personală**.
+
+| Aspect             | Faza 1.3 (MVP actual)                                                                                          | Faza 2–3+                                       |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); nu stă pe serverul aplicației                  | Poate migra la DB server / cloud                |
+| Acces              | Doar pe dispozitivul/browserul respectiv                                                                       | Autentificare necesară                          |
+| Trimitere la terți | La fiecare mesaj: profilul merge în system prompt → Anthropic (necesar pentru răspunsuri contextualizate)      | Aceeași regulă + politică explicită documentată |
+| Ștergere           | Ștergere `localStorage` pentru cheia `skillforge-app` (sau DevTools → Application → Local Storage) | Endpoint/mechanism documentat                   |
 
 ### Costuri provider LLM
 

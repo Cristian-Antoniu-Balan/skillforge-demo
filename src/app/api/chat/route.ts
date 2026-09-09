@@ -4,26 +4,10 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 import { DEFAULT_CHAT_MODEL, isAnthropicChatModel } from "@/lib/llm/models";
+import { buildSystemPrompt } from "@/lib/system-prompt";
 import type { Profile } from "@/lib/types";
 
 export const runtime = "nodejs";
-
-function buildSystemPrompt(profile: Profile | undefined) {
-  if (!profile) {
-    return "Ești SkillForge, un copilot personal de skills și carieră. Răspunde clar și concret.";
-  }
-
-  const skills = profile.skills.map(skill => `${skill.name} (${skill.level})`).join(", ");
-
-  return [
-    "Ești SkillForge, un copilot personal de skills și carieră.",
-    "Răspunde în contextul profilului utilizatorului — fără sfaturi generice.",
-    `Nume: ${profile.name}`,
-    `Stack: ${profile.stack}`,
-    `Skills: ${skills || "nespecificate"}`,
-    `Obiectiv: ${profile.objective}`
-  ].join("\n");
-}
 
 function providerErrorMessage(error: unknown) {
   if (error == null) return "Eroare necunoscută de la provider.";
