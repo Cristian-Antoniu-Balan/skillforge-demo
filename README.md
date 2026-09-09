@@ -6,9 +6,11 @@ integrarea LLM-urilor într-o aplicație web reală.
 
 ## Aplicație publicată
 
-> URL Production (Vercel): _se completează după primul deploy — vezi [`docs/vercel/README.md`](docs/vercel/README.md)._
+> URL Production: _copiază din Vercel → Project → **Domains** după ce Deployment Protection e
+> dezactivat pe Production (altfel linkul cere login Vercel)._ Pași: [`docs/vercel/README.md`](docs/vercel/README.md).
 
-Preview: fiecare branch/push primește automat un link de test în Vercel Dashboard.
+Proiect: [Vercel Dashboard](https://vercel.com) → `skillforge-demo` (conectat la GitHub).
+Preview: fiecare branch/push → URL de test separat în Deployments.
 
 ## Rulare locală
 

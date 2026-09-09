@@ -51,7 +51,11 @@ Ce **nu** poate face agentul — trebuie făcut de tine (și refăcut pe alt cal
    pe **Production** și pe **Preview** (valori reale doar aici, niciodată în git).
 6. **Deployments → Redeploy** pe ultimul deployment Production (și Preview dacă e cazul),
    ca noile env să fie vizibile.
-7. Copiază URL-ul Production în `README.md` (secțiunea aplicație publicată).
+7. Copiază URL-ul Production din Project → **Domains** în `README.md` (secțiunea aplicație publicată).
+8. **Deployment Protection / Vercel Authentication:** dacă linkul redirecționează la login Vercel
+   (SSO), nu e partajabil. Project → **Settings** → **Deployment Protection** → pentru
+   Production setează **Only Preview Deployments** (sau Disabled), ca URL-ul public să se
+   deschidă fără cont Vercel. Apoi verifică dintr-un browser / telefon neautentificat.
 
 ### Refacere pe alt calculator
 
@@ -82,11 +86,18 @@ Loguri când merge local și cade pe Vercel: Project → **Deployments** → dep
 
 ## Verificare
 
-- Deschide URL-ul Production pe **telefon**, nu doar pe laptop — UI responsive.
+- Dashboard proiect: [vercel.com](https://vercel.com) → proiectul `skillforge-demo` (import din GitHub).
+- Deschide URL-ul Production pe **telefon**, nu doar pe laptop — UI responsive; **fără** redirect la login Vercel.
 - Push pe un branch de test → Deployment Preview cu URL **diferit** de Production.
 - Fără `ANTHROPIC_API_KEY` pe Vercel: chat → alertă **Provider neconfigurat** (nu crash).
 - Cu cheie + Redeploy: mesaj în chat → răspuns streaming.
 - Local, înainte de push: mută temporar `.env.local` → `npm run build` trebuie să treacă.
+
+### Stare la primul pas (curs)
+
+- Repo GitHub conectat; push pe `main` declanșează Production (verificat: deployment `success`).
+- Rămâne de făcut pe dashboard: env pe Production + Preview, Redeploy, Deployment Protection
+  dezactivat pe Production, URL public lipit în `README.md`.
 
 ## Referințe
 
