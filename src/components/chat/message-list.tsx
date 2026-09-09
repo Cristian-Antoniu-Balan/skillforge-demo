@@ -9,6 +9,7 @@ interface MessageListProps {
   messages: UIMessage[];
   isBusy: boolean;
   status?: "submitted" | "streaming" | "ready" | "error";
+  onRegenerate?: (messageId: string) => void;
 }
 
 function TypingIndicator({ label }: { label: string }) {
@@ -24,7 +25,7 @@ function TypingIndicator({ label }: { label: string }) {
   );
 }
 
-export function MessageList({ messages, isBusy, status }: MessageListProps) {
+export function MessageList({ messages, isBusy, status, onRegenerate }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,10 +51,19 @@ export function MessageList({ messages, isBusy, status }: MessageListProps) {
   // Doar „submitted” — în streaming textul apare deja în ultimul mesaj.
   const showWaiting = status === "submitted";
 
+  // Reluarea pe ultimul assistant: înlocuire vizibilă (bubble-ul vechi dispare).
+  const lastAssistantId = [...messages].reverse().find(message => message.role === "assistant")?.id;
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
       {messages.map(message => (
-        <MessageItem key={message.id} message={message} />
+        <MessageItem
+          key={message.id}
+          isBusy={isBusy}
+          message={message}
+          onRegenerate={onRegenerate}
+          showRegenerate={message.role === "assistant" && message.id === lastAssistantId && !showWaiting}
+        />
       ))}
       {showWaiting && <TypingIndicator label="SkillForge scrie…" />}
       <div ref={bottomRef} />

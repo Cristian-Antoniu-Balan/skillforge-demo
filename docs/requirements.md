@@ -162,7 +162,7 @@ Răspuns real de la model, token cu token, fără reload. Cheia API rămâne pe 
 - Autentificare, multi-user
 - Persistență conversații pe server (Faza 2)
 
-#### Faza 1.4 — Deploy Vercel _(în curs)_
+#### Faza 1.4 — Deploy Vercel _(livrat)_
 
 Publicare precoce: aplicația online pe un link partajabil, cu chei doar în platformă.
 Mutat din Faza 3 (unde rămâne doar monitorizarea) — problemele de mediu se descoperă ieftin pe puține funcționalități.
@@ -185,6 +185,27 @@ Mutat din Faza 3 (unde rămâne doar monitorizarea) — problemele de mediu se d
 - Domeniu propriu
 - Monitorizare, analytics (Faza 3)
 - Auth, multi-user
+
+#### Faza 1.5 — Acțiuni pe conversație + export _(livrat)_
+
+Lucru pe conversație fără sursă de adevăr nouă: butoanele citesc sau taie aceeași listă de mesaje din `useChat`.
+
+**In scope:**
+
+- Reluare răspuns (`regenerate()`): înlocuiește ultimul răspuns assistant, nu adaugă un al doilea
+- Copiere mesaj: confirmare prin toast-ul existent; fără crash dacă `navigator.clipboard` lipsește (context non-securizat)
+- Chat nou în sidebar: `setMessages([])` + conversație nouă; golirea cere confirmare
+- Export JSON + Markdown din meniul header: conversație + profil + dată; descărcare în browser (`Blob` + `createObjectURL` + `revokeObjectURL`)
+- Serializare pură în `src/lib/message-utils.ts` (fără store / DOM / fetch); un singur loc pentru textul unui mesaj; JSON și Markdown din aceeași structură intermediară
+- Nume fișier: `skillforge-<data-ISO>.md` / `.json` (fără diacritice, fără spații; fără titlu brut în nume)
+- Acțiuni pe mesaj (hover): copiere + reluare; **fără** bară de acțiuni deasupra conversației
+
+**Out of scope:**
+
+- Export PDF
+- Editarea mesajelor
+- Persistență conversații pe server (Faza 2)
+- Integrare externă nouă / variabile env noi
 
 ---
 
@@ -229,11 +250,13 @@ Mutat din Faza 3 (unde rămâne doar monitorizarea) — problemele de mediu se d
 
 ### Exemple concrete
 
-| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                        |
-| -------------------------------------------------------------- | ----------- | ------------------------------------------------------------ |
-| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice |
-| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare    |
-| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan               |
+| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                         |
+| -------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
+| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice  |
+| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare     |
+| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                |
+| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el      |
+| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid |
 
 ### Format pentru criterii noi
 
@@ -264,6 +287,8 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 | Acces              | Doar pe dispozitivul/browserul respectiv                                                                  | Autentificare necesară                          |
 | Trimitere la terți | La fiecare mesaj: profilul merge în system prompt → Anthropic (necesar pentru răspunsuri contextualizate) | Aceeași regulă + politică explicită documentată |
 | Ștergere           | Ștergere `localStorage` pentru cheia `skillforge-app` (sau DevTools → Application → Local Storage)        | Endpoint/mechanism documentat                   |
+
+**Export (Faza 1.5):** fișierul descărcat (JSON/Markdown) conține **profilul + conversația**. Utilizatorul trebuie să știe ce iese din aplicație — poate trimite mai departe date personale fără să-și dea seama.
 
 ### Costuri provider LLM
 
@@ -337,4 +362,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: 2026-09-09 — Faza 1.4 (Deploy Vercel); deploy mutat din Faza 3_
+_Ultima actualizare: 2026-09-09 — Faza 1.5 (Acțiuni pe conversație + export)_

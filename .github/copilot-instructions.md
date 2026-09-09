@@ -91,17 +91,26 @@ is lost on reinstall, new machine, or deploy.
 - Provider must be swappable via abstraction — no hard-coded provider logic scattered in UI.
 - `.env.example` lists variable names only; `.gitignore` excludes all `.env*` files with secrets.
 
+### Message transforms and chat UI
+
+- Message transforms (text extraction, export serialization) live in `src/lib/message-utils.ts` as **pure**
+  functions — inputs in, string out; no store, no `document`, no `fetch`.
+- **One** place extracts text from a `UIMessage` (`getMessageText`). Do not re-implement parts → text elsewhere.
+- JSON and Markdown export must share the same intermediate payload; do not maintain two independent shapes.
+- **Product rule:** no action bar above the conversation. New chat stays in the sidebar; export in the header
+  menu; copy / regenerate appear on the message (hover). The chat center stays clean.
+
 ---
 
-## Current phase: 1.4 (Deploy Vercel)
+## Current phase: 1.5 (Conversation actions + export)
 
-**In scope:** GitHub → Vercel import; Preview per branch + Production on `main`;
-env vars only in Vercel (Production **and** Preview); build without keys;
-`docs/vercel/`; `pre-deploy` skill + `scripts/sync-skills.sh`; public URL in README.
+**In scope:** regenerate (replace, not append); copy with toast + clipboard guard; new chat via
+`setMessages` + confirm; export JSON/Markdown (profile + conversation + date); pure helpers in
+`message-utils.ts`; UI placement as above.
 
-**Out of scope:** custom domain, monitoring, analytics, auth.
+**Out of scope:** PDF export, message editing, server persistence, new env vars / integrations.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.4) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.5) before changing scope.
 
 ---
 

@@ -27,6 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { useChatSession } from "@/components/chat/chat-session-context";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -34,8 +35,8 @@ export function AppSidebar() {
   const profile = useAppStore(state => state.profile);
   const conversations = useAppStore(state => state.conversations);
   const activeConversationId = useAppStore(state => state.activeConversationId);
-  const createConversation = useAppStore(state => state.createConversation);
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
+  const { startNewChat } = useChatSession();
   const renameConversation = useAppStore(state => state.renameConversation);
   const deleteConversation = useAppStore(state => state.deleteConversation);
   const setSettingsOpen = useAppStore(state => state.setSettingsOpen);
@@ -62,9 +63,9 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="p-3">
-        <Button className="w-full justify-start gap-2" onClick={() => createConversation()} variant="outline">
+        <Button className="w-full justify-start gap-2" onClick={() => startNewChat()} variant="outline">
           <Plus className="size-4" />
-          New
+          Chat nou
         </Button>
       </SidebarHeader>
 
