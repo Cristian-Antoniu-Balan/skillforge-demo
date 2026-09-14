@@ -10,6 +10,7 @@ interface MessageListProps {
   isBusy: boolean;
   status?: "submitted" | "streaming" | "ready" | "error";
   onRegenerate?: (messageId: string) => void;
+  onEdit?: (messageId: string, text: string) => void;
 }
 
 function TypingIndicator({ label }: { label: string }) {
@@ -25,7 +26,7 @@ function TypingIndicator({ label }: { label: string }) {
   );
 }
 
-export function MessageList({ messages, isBusy, status, onRegenerate }: MessageListProps) {
+export function MessageList({ messages, isBusy, status, onRegenerate, onEdit }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,7 +49,8 @@ export function MessageList({ messages, isBusy, status, onRegenerate }: MessageL
     );
   }
 
-  // Doar „submitted” — în streaming textul apare deja în ultimul mesaj.
+  // Derivă din statusul useChat: submitted = cererea a plecat, încă fără tokeni.
+  // În streaming textul apare deja în ultimul mesaj — nu dublăm cu un al doilea indicator.
   const showWaiting = status === "submitted";
 
   // Reluarea pe ultimul assistant: înlocuire vizibilă (bubble-ul vechi dispare).
@@ -61,6 +63,7 @@ export function MessageList({ messages, isBusy, status, onRegenerate }: MessageL
           key={message.id}
           isBusy={isBusy}
           message={message}
+          onEdit={onEdit}
           onRegenerate={onRegenerate}
           showRegenerate={message.role === "assistant" && message.id === lastAssistantId && !showWaiting}
         />

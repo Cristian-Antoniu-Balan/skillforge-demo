@@ -53,6 +53,7 @@ interface ChatViewValue {
   handleSend: () => void;
   stop: () => void;
   regenerateMessage: (messageId: string) => void;
+  editAndResubmit: (messageId: string, text: string) => void;
 }
 
 const ChatViewContext = createContext<ChatViewValue | null>(null);
@@ -169,6 +170,21 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
     [isBusy, regenerate]
   );
 
+  const editAndResubmit = useCallback(
+    (messageId: string, text: string) => {
+      // Fără tăiere, mesajele de după rămân și modelul primește un istoric cu două fire.
+      if (isBusy) return;
+      const index = messages.findIndex(message => message.id === messageId);
+      if (index < 0) return;
+      // sendMessage pune deja mesajul user în listă — nu ținem o a doua copie „optimistică”.
+      setMessages(messages.slice(0, index));
+      void sendMessage({ text }).then(() => {
+        inputRef.current?.focus();
+      });
+    },
+    [isBusy, messages, setMessages, sendMessage]
+  );
+
   const exportConversation = useCallback(
     (format: ExportFormat) => {
       const conversation = useAppStore.getState().conversations.find(c => c.id === activeConversationId);
@@ -206,9 +222,10 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
       inputRef,
       handleSend,
       stop,
-      regenerateMessage
+      regenerateMessage,
+      editAndResubmit
     }),
-    [messages, isBusy, status, error, clearError, input, handleSend, stop, regenerateMessage]
+    [messages, isBusy, status, error, clearError, input, handleSend, stop, regenerateMessage, editAndResubmit]
   );
 
   return (
@@ -258,7 +275,8 @@ export function Chat() {
     inputRef,
     handleSend,
     stop,
-    regenerateMessage
+    regenerateMessage,
+    editAndResubmit
   } = props;
 
   const showEmpty = messages.length === 0 && !isBusy;
@@ -285,7 +303,13 @@ export function Chat() {
         {showEmpty ? (
           <EmptyState onSuggestion={setInput} />
         ) : (
-          <MessageList isBusy={isBusy} messages={messages} onRegenerate={regenerateMessage} status={status} />
+          <MessageList
+            isBusy={isBusy}
+            messages={messages}
+            onEdit={editAndResubmit}
+            onRegenerate={regenerateMessage}
+            status={status}
+          />
         )}
       </div>
 

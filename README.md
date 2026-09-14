@@ -53,4 +53,15 @@ npm run format:check  # verificare format (pre-deploy)
 
 ## Stare curentă
 
-**Faza 1.4** — deploy Vercel (Preview + Production). Faza 1.3 (agent + chat streaming) e livrată.
+**Faza 1.8** — finisaje UX (markdown formatat în streaming, highlighting selectiv, indicator „scrie…”,
+editare + retrimitere). Faza 1.7 (temă pe Context) e livrată.
+
+## Dependențe notabile (nu sunt integrări externe)
+
+| Pachet                          | De ce e aici                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| `react-markdown` + `remark-gfm` | Randare markdown sigură (fără HTML brut) + tabele/liste GFM                          |
+| `lowlight` + `highlight.js`     | Syntax highlighting; înregistrăm **doar** limbajele folosite în chat (fără `common`) |
+| `@tailwindcss/typography`       | Clase `prose` — tipografie markdown fără CSS scris de mână                           |
+
+Acestea nu au cont / cheie API → **nu** primesc folder în `docs/` (vezi regula integrărilor).

@@ -73,23 +73,28 @@ is lost on reinstall, new machine, or deploy.
 
 ## Technical stack
 
-| Component       | Technology                                         | From phase |
-| --------------- | -------------------------------------------------- | ---------- |
-| Web framework   | Next.js 16 (App Router)                            | 1.1        |
-| Language        | TypeScript                                         | 1.1        |
-| Styling         | Tailwind CSS v4 + shadcn/ui                        | 1.1        |
-| Formatting      | Prettier + prettier-plugin-tailwindcss             | 1.1        |
-| Client state    | Zustand + persist (localStorage); theme on Context | 1.2 / 1.7  |
-| LLM integration | Vercel AI SDK                                      | 1.3        |
-| LLM calls       | Server-side only                                   | 1.3        |
-| Deploy          | Vercel (Preview + Production)                      | 1.4        |
-| MVP users       | Single-user (no auth)                              | 1–2        |
+| Component       | Technology                                                            | From phase |
+| --------------- | --------------------------------------------------------------------- | ---------- |
+| Web framework   | Next.js 16 (App Router)                                               | 1.1        |
+| Language        | TypeScript                                                            | 1.1        |
+| Styling         | Tailwind CSS v4 + shadcn/ui                                           | 1.1        |
+| Formatting      | Prettier + prettier-plugin-tailwindcss                                | 1.1        |
+| Client state    | Zustand + persist (localStorage); theme on Context                    | 1.2 / 1.7  |
+| Chat markdown   | `react-markdown` + `remark-gfm` + selective `lowlight`/`highlight.js` | 1.8        |
+| LLM integration | Vercel AI SDK                                                         | 1.3        |
+| LLM calls       | Server-side only                                                      | 1.3        |
+| Deploy          | Vercel (Preview + Production)                                         | 1.4        |
+| MVP users       | Single-user (no auth)                                                 | 1–2        |
 
 ### Security
 
 - API keys live in server-side env vars only (`.env.local`). **Never** expose them to the browser.
 - Provider must be swappable via abstraction — no hard-coded provider logic scattered in UI.
 - `.env.example` lists variable names only; `.gitignore` excludes all `.env*` files with secrets.
+- **Model output is untrusted content.** Render it **without** raw HTML: do not enable `rehype-raw`, and never
+  use `dangerouslySetInnerHTML` on model-generated text (XSS via crafted markdown / HTML in replies).
+- **One** markdown renderer: `src/components/chat/markdown.tsx`. Do not re-implement formatting in the
+  message list or message item.
 
 ### Message transforms and chat UI
 
@@ -98,7 +103,9 @@ is lost on reinstall, new machine, or deploy.
 - **One** place extracts text from a `UIMessage` (`getMessageText`). Do not re-implement parts → text elsewhere.
 - JSON and Markdown export must share the same intermediate payload; do not maintain two independent shapes.
 - **Product rule:** no action bar above the conversation. New chat stays in the sidebar; export in the header
-  menu; copy / regenerate appear on the message (hover). The chat center stays clean.
+  menu; copy / regenerate / edit appear on the message (hover). The chat center stays clean.
+- **Edit + resubmit:** truncate the message list from the edited user message downward, then send again.
+  Editing is disabled while a response is streaming (stop first). Do not leave parallel conversation threads.
 
 ### Message ownership and store reads
 
@@ -126,16 +133,15 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.7 (Theme on Context)
+## Current phase: 1.8 (UX polish) — delivered
 
-**In scope:** move theme preference from the Zustand store to `createContext` + `useTheme()`; dedicated
-`skillforge-theme` key; blocking pre-paint script; `resolveTheme` kept pure; Sonner wired to our hook;
-document the reimplementation in `docs/requirements.md`.
+**Shipped:** dedicated markdown renderer (no raw HTML); selective syntax highlighting; code-block copy;
+typing indicator from `useChat` status; edit + truncate + resubmit for user messages.
 
-**Out of scope:** theme libraries, new env vars / integrations, header theme toggle, removing
-`next-themes` from `package.json` by guesswork.
+**Out of scope for this step:** second UI component library, hand-written markdown CSS, new env/integrations,
+new skills.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.7) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.8) before changing scope.
 
 ---
 

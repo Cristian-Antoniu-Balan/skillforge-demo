@@ -242,7 +242,7 @@ Mesajele nu mai dispar la refresh sau la comutarea între conversații. Un singu
 
 **De discutat la curs:** limita `localStorage` (câțiva MB) și ce se întâmplă când istoricul o atinge; de ce sync-ul la final înseamnă că un refresh mid-stream pierde răspunsul.
 
-#### Faza 1.7 — Temă pe Context _(curent)_
+#### Faza 1.7 — Temă pe Context _(livrată)_
 
 Tema exista deja (1.2); aici se **mută** din store pe un mecanism propriu — didactic, pe cod real, nu o cerință nouă de produs.
 
@@ -264,6 +264,32 @@ Tema exista deja (1.2); aici se **mută** din store pe un mecanism propriu — d
 - Buton de temă în header (rămâne doar în Preferințe)
 
 **De discutat la curs:** de ce Context nu e „state management” (fără selectors — orice consumator se re-randează); flash-ul de hidratare și de ce în producție se folosește adesea o librărie; alegerea store vs context pe frecvența schimbării și pe numărul de cititori.
+
+---
+
+#### Faza 1.8 — Finisaje UX (markdown, semnale, editare) _(livrată)_
+
+Nimic aici nu adaugă „funcționalitate nouă” de produs, dar schimbă percepția: răspunsurile arată ca documente, modelul „scrie”, mesajul tău apare instant, iar o greșeală se corectează fără conversație nouă.
+
+**In scope:**
+
+- Markdown randat de un **singur** component: `src/components/chat/markdown.tsx` (refolosit de toate mesajele)
+- Securitate: **fără** HTML brut din răspunsul modelului (fără `rehype-raw`, fără `dangerouslySetInnerHTML` pe conținutul modelului)
+- Link-uri: `target="_blank"` + `rel="noopener noreferrer"`
+- Randare tolerantă la markdown **incomplet** în timpul streaming-ului (nu aruncă)
+- Syntax highlighting doar pentru `ts` / `tsx` / `js` / `json` / `bash` / `sql` / `python` via `lowlight` + import selectiv din `highlight.js` (nu `rehype-highlight`: importă static `common` și umflă bundle-ul)
+- Buton de copiere pe fiecare bloc de cod (aceeași verificare de context securizat + toast existent)
+- Indicator „scrie…” derivat din statusul `useChat` (`submitted` vs `streaming`)
+- Optimistic UI fără a doua sursă de adevăr (`sendMessage` pune deja mesajul în listă)
+- Editare mesaj user: taie lista de la mesajul editat în jos + retrimitere; indisponibilă cât timp curge un răspuns
+
+**Out of scope:**
+
+- A doua librărie de componente UI; CSS scris de mână pentru markdown (Tailwind `prose` + temă highlight din librărie)
+- Folder `docs/` pentru markdown/highlight (nu sunt integrări: fără cont / cheie)
+- Skill nou
+
+**De discutat la curs:** de ce conținutul generat de un model se tratează ca input de utilizator; ce înseamnă „optimistic” când oricum ai streaming; de ce fiecare editare + retrimitere costă din nou întregul istoric.
 
 ---
 
@@ -308,14 +334,16 @@ Tema exista deja (1.2); aici se **mută** din store pe un mecanism propriu — d
 
 ### Exemple concrete
 
-| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                          |
-| -------------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
-| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice   |
-| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare      |
-| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                 |
-| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el       |
-| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid  |
-| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus |
+| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                           |
+| -------------------------------------------------------------- | ----------- | --------------------------------------------------------------- |
+| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice    |
+| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare       |
+| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                  |
+| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el        |
+| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid   |
+| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus  |
+| „Răspunde cu titluri, listă, tabel și două blocuri de cod”     | Faza 1.8    | Formatat **în timp ce curge**; cod colorat + buton copiere      |
+| Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi |
 
 ### Format pentru criterii noi
 
@@ -421,4 +449,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: 2026-09-14 — Faza 1.7 (Temă pe Context)_
+_Ultima actualizare: 2026-09-14 — Faza 1.8 (Finisaje UX: markdown, semnale, editare)_
