@@ -1,17 +1,7 @@
 // Conversații inventate — înlocuite dintr-o singură atingere când vine backend-ul / LLM-ul.
 import type { UIMessage } from "ai";
 
-import { ANTHROPIC_CHAT_MODELS } from "@/lib/llm/models";
-import type { Conversation, ProviderConfig } from "@/lib/types";
-
-export const mockProviders: ProviderConfig[] = [
-  {
-    id: "anthropic",
-    name: "Anthropic",
-    // Aceleași ID-uri pe care le acceptă POST /api/chat
-    models: [...ANTHROPIC_CHAT_MODELS]
-  }
-];
+import type { Conversation } from "@/lib/types";
 
 function textMessage(id: string, role: UIMessage["role"], text: string): UIMessage {
   return { id, role, parts: [{ type: "text", text }] };

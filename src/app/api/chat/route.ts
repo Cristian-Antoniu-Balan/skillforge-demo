@@ -1,9 +1,14 @@
-// Endpoint-ul chat — cheia Anthropic rămâne pe server; clientul primește doar stream-ul UI.
-// Citim env în handler (nu la import) ca build-ul să treacă și fără .env.local.
-import { anthropic } from "@ai-sdk/anthropic";
+// Endpoint-ul chat — providerul e ales din body; cheile rămân pe server.
+// Citim env doar prin providers.server (nu la import) ca build-ul să treacă fără .env.local.
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
-import { DEFAULT_CHAT_MODEL, isAnthropicChatModel } from "@/lib/llm/models";
+import {
+  getModel,
+  getUnconfiguredMessage,
+  isProviderConfigured,
+  ProviderNotConfiguredError
+} from "@/lib/providers.server";
+import { DEFAULT_PROVIDER_ID, resolveSelection } from "@/lib/providers";
 import { buildSystemPrompt } from "@/lib/system-prompt";
 import type { Profile } from "@/lib/types";
 
@@ -15,10 +20,10 @@ function providerErrorMessage(error: unknown) {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     if (message.includes("rate") || message.includes("429")) {
-      return "Limită de cereri atinsă la Anthropic. Încearcă din nou peste puțin timp.";
+      return "Limită de cereri atinsă la provider. Încearcă din nou peste puțin timp.";
     }
     if (message.includes("authentication") || message.includes("api key") || message.includes("401")) {
-      return "Cheia Anthropic este invalidă sau a fost revocată. Verifică ANTHROPIC_API_KEY (Vercel Environment Variables sau .env.local) și fă Redeploy dacă ai schimbat-o pe Vercel.";
+      return "Cheia API este invalidă sau a fost revocată. Verifică variabila din Vercel / .env.local și fă Redeploy dacă ai schimbat-o pe Vercel.";
     }
     return error.message;
   }
@@ -26,37 +31,33 @@ function providerErrorMessage(error: unknown) {
 }
 
 export async function POST(req: Request) {
-  // Env la request — nu la import: build-ul și UI-ul trebuie să meargă și fără cheie.
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      {
-        error:
-          "Provider neconfigurat. Lipsește ANTHROPIC_API_KEY — seteaz-o în Vercel (Production + Preview) sau în .env.local; vezi docs/vercel/README.md."
-      },
-      { status: 400 }
-    );
-  }
-
   const body = (await req.json()) as {
     messages: UIMessage[];
     profile?: Profile;
+    providerId?: string;
     model?: string;
   };
 
-  // Același model pe care îl arată UI-ul — fără allowlist, clientul ar putea forța orice ID.
-  const requestedModel = body.model ?? DEFAULT_CHAT_MODEL;
-  if (!isAnthropicChatModel(requestedModel)) {
-    return Response.json(
-      {
-        error: `Model necunoscut sau neactiv: "${requestedModel}". Alege un model Anthropic din Preferințe.`
-      },
-      { status: 400 }
-    );
+  // Valori curente de la client, normalizate contra registru (localStorage vechi / cerere manuală).
+  const selection = resolveSelection(body.providerId ?? DEFAULT_PROVIDER_ID, body.model);
+
+  // Fără cheie ≠ excepție neașteptată: e stare normală → 400 lizibil, ca în Faza 1.3.
+  if (!isProviderConfigured(selection.providerId)) {
+    return Response.json({ error: getUnconfiguredMessage(selection.providerId) }, { status: 400 });
+  }
+
+  let model;
+  try {
+    model = getModel(selection.providerId, selection.modelId);
+  } catch (error) {
+    if (error instanceof ProviderNotConfiguredError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
   }
 
   const result = streamText({
-    model: anthropic(requestedModel),
+    model,
     system: buildSystemPrompt(body.profile),
     messages: await convertToModelMessages(body.messages)
   });

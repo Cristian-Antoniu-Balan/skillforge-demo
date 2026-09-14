@@ -1,58 +1,67 @@
 "use client";
 
-// Selector model Anthropic — același ID e trimis la POST /api/chat.
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { mockProviders, useAppStore } from "@/store/useAppStore";
+// Preferințe → Providere: status chei + reminder că comutatorul e în composer.
+// Lista vine din registru — fără if pe providerId; un provider nou apare singur.
+import { useEffect, useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { PROVIDERS, type ProviderAvailability } from "@/lib/providers";
 
 export function ProvidersForm() {
-  const selectedProviderId = useAppStore(state => state.selectedProviderId);
-  const selectedModel = useAppStore(state => state.selectedModel);
-  const setSelectedProvider = useAppStore(state => state.setSelectedProvider);
+  const [availability, setAvailability] = useState<ProviderAvailability[] | null>(null);
 
-  const activeProvider = mockProviders.find(p => p.id === selectedProviderId) ?? mockProviders[0];
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/providers")
+      .then(response => response.json())
+      .then((data: { providers?: ProviderAvailability[] }) => {
+        if (!cancelled) setAvailability(data.providers ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailability([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const statusFor = (providerId: string) => availability?.find(entry => entry.id === providerId);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold">Providere</h2>
         <p className="text-sm text-muted-foreground">
-          Modelul ales aici e cel folosit la generare (afișat și în caseta de chat).
+          Comutatorul pentru mesajul următor stă lângă caseta de chat. Aici vezi doar dacă cheia e setată pe server
+          (fără a expune valoarea).
         </p>
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Provider</Label>
-          <div className="flex flex-wrap gap-2">
-            {mockProviders.map(provider => (
-              <Button
-                key={provider.id}
-                onClick={() => setSelectedProvider(provider.id, provider.models[0])}
-                size="sm"
-                variant={selectedProviderId === provider.id ? "default" : "outline"}
-              >
-                {provider.name}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Model</Label>
-          <div className="flex flex-wrap gap-2">
-            {activeProvider.models.map(model => (
-              <Button
-                key={model}
-                onClick={() => setSelectedProvider(activeProvider.id, model)}
-                size="sm"
-                variant={selectedModel === model ? "default" : "outline"}
-              >
-                {model}
-              </Button>
-            ))}
-          </div>
-        </div>
+        {PROVIDERS.map(provider => {
+          const status = statusFor(provider.id);
+          const configured = status?.configured ?? false;
+          return (
+            <div className="space-y-2 rounded-lg border p-3" key={provider.id}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="font-medium">{provider.name}</div>
+                {availability ? (
+                  <Badge variant={configured ? "default" : "secondary"}>
+                    {configured ? "configurat" : "neconfigurat"}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">se verifică…</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Modele: {provider.models.join(", ")} · env: {provider.envKey}
+              </p>
+              {status && !status.configured && status.reason ? (
+                <p className="text-xs text-muted-foreground">{status.reason}</p>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

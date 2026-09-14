@@ -68,6 +68,7 @@ interface ChatSessionInnerProps {
 
 function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRef, children }: ChatSessionInnerProps) {
   const profile = useAppStore(state => state.profile);
+  const selectedProviderId = useAppStore(state => state.selectedProviderId);
   const selectedModel = useAppStore(state => state.selectedModel);
   const createConversation = useAppStore(state => state.createConversation);
   const renameConversation = useAppStore(state => state.renameConversation);
@@ -75,6 +76,10 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
 
   const profileRef = useRef(profile);
   profileRef.current = profile;
+
+  // Refs: body-ul transportului citește valoarea de la trimitere, nu pe cea de la mount.
+  const providerIdRef = useRef(selectedProviderId);
+  providerIdRef.current = selectedProviderId;
 
   const modelRef = useRef(selectedModel);
   modelRef.current = selectedModel;
@@ -86,8 +91,11 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        // model + profile: ce vezi în UI = ce trimite serverul la Anthropic
-        body: () => ({ profile: profileRef.current, model: modelRef.current })
+        body: () => ({
+          profile: profileRef.current,
+          providerId: providerIdRef.current,
+          model: modelRef.current
+        })
       }),
     []
   );

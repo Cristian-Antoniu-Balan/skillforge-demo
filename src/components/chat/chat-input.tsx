@@ -1,11 +1,12 @@
 // Composer-ul chat — input controlat; Enter trimite, Shift+Enter linie nouă.
 // Send/Stop comută după isBusy (submitted | streaming).
-import { ChevronDown, Plus, Send, Square } from "lucide-react";
+// Comutatorul de provider stă aici: e o decizie pe mesajul următor, nu o preferință rară.
+import { Plus, Send, Square } from "lucide-react";
 import { useEffect, useState, type RefObject } from "react";
 
+import { ProviderModelPicker } from "@/components/chat/provider-model-picker";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { mockProviders, useAppStore } from "@/store/useAppStore";
 
 interface ChatInputProps {
   draft: string;
@@ -17,14 +18,9 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ draft, onDraftChange, onSend, onStop, isBusy, inputRef }: ChatInputProps) {
-  const selectedProviderId = useAppStore(state => state.selectedProviderId);
-  const selectedModel = useAppStore(state => state.selectedModel);
-
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
-  const provider = mockProviders.find(p => p.id === selectedProviderId);
 
   const adjustHeight = () => {
     const el = inputRef.current;
@@ -63,15 +59,7 @@ export function ChatInput({ draft, onDraftChange, onSend, onStop, isBusy, inputR
             <Plus className="size-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <button
-              className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              type="button"
-            >
-              <span>{provider?.name ?? "Provider"}</span>
-              <span className="text-muted-foreground/70">·</span>
-              <span className="max-w-[8rem] truncate">{selectedModel}</span>
-              <ChevronDown className="size-3" />
-            </button>
+            <ProviderModelPicker />
             {isBusy ? (
               <Button aria-label="Stop" onClick={onStop} size="icon-sm" variant="default">
                 <Square className="size-4" />
@@ -85,7 +73,7 @@ export function ChatInput({ draft, onDraftChange, onSend, onStop, isBusy, inputR
         </div>
       </div>
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        Răspunsurile vin de la Claude (Anthropic) prin `/api/chat` — cheia rămâne pe server.
+        Alege providerul lângă Trimite — cheile rămân pe server; opțiunile fără cheie apar dezactivate.
       </p>
     </div>
   );

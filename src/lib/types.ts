@@ -41,12 +41,6 @@ export type ThemeMode = "system" | "light" | "dark";
 
 export type SettingsTab = "general" | "profile" | "providers" | "about";
 
-export interface ProviderConfig {
-  id: string;
-  name: string;
-  models: string[];
-}
-
 export interface AppStore {
   profile: Profile;
   selectedProviderId: string;

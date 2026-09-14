@@ -13,9 +13,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { UIMessage } from "ai";
 
-import { mockProviders } from "@/lib/mock/conversations";
 import { mockProfile } from "@/lib/mock/profile";
-import { DEFAULT_CHAT_MODEL, isAnthropicChatModel } from "@/lib/llm/models";
+import { DEFAULT_CHAT_MODEL, DEFAULT_PROVIDER_ID, isKnownModel, PROVIDERS } from "@/lib/providers";
 import type { AppStore, Conversation, Message, Profile } from "@/lib/types";
 
 /** Versiunea stării din localStorage — orice schimbare de formă cere increment + migrate. */
@@ -67,8 +66,9 @@ export const useAppStore = create<AppStore>()(
   persist(
     set => ({
       profile: mockProfile,
-      selectedProviderId: mockProviders[0].id,
-      selectedModel: mockProviders[0].models[0],
+      // Implicit = primul din registru (Anthropic) — pe creditele lui rulează cursul.
+      selectedProviderId: DEFAULT_PROVIDER_ID,
+      selectedModel: DEFAULT_CHAT_MODEL,
       conversations: [],
       activeConversationId: null,
       isLoading: false,
@@ -147,20 +147,19 @@ export const useAppStore = create<AppStore>()(
         conversations: state.conversations,
         activeConversationId: state.activeConversationId
       }),
-      // localStorage vechi poate avea OpenAI / ID-uri scoase — aliniem la modelele reale din /api/chat
+      // localStorage vechi poate avea id-uri scoase din registru — le aducem la o pereche validă.
       merge: (persisted, current) => {
         const merged = { ...current, ...(persisted as Partial<AppStore>) };
-        if (!isAnthropicChatModel(merged.selectedModel)) {
-          merged.selectedModel = DEFAULT_CHAT_MODEL;
-          merged.selectedProviderId = "anthropic";
+        if (!isKnownModel(merged.selectedProviderId, merged.selectedModel)) {
+          const fallback = PROVIDERS.find(p => p.id === merged.selectedProviderId) ?? PROVIDERS[0];
+          merged.selectedProviderId = fallback.id;
+          merged.selectedModel = fallback.defaultModelId;
         }
         return merged;
       }
     }
   )
 );
-
-export { mockProviders };
 
 export function skillsToText(skills: Profile["skills"]) {
   return skills.map(s => `${s.name}: ${s.level}`).join("\n");

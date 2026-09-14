@@ -78,6 +78,7 @@ is lost on reinstall, new machine, or deploy.
 | Formatting      | Prettier + prettier-plugin-tailwindcss                                | 1.1        |
 | Client state    | Zustand + persist (localStorage); theme on Context                    | 1.2 / 1.7  |
 | Chat markdown   | `react-markdown` + `remark-gfm` + selective `lowlight`/`highlight.js` | 1.8        |
+| LLM providers   | Registry (`providers.ts`) + server factory (`providers.server.ts`)    | 1.9        |
 | LLM integration | Vercel AI SDK                                                         | 1.3        |
 | LLM calls       | Server-side only                                                      | 1.3        |
 | Deploy          | Vercel (Preview + Production)                                         | 1.4        |
@@ -92,6 +93,10 @@ is lost on reinstall, new machine, or deploy.
   use `dangerouslySetInnerHTML` on model-generated text (XSS via crafted markdown / HTML in replies).
 - **One** markdown renderer: `src/components/chat/markdown.tsx`. Do not re-implement formatting in the
   message list or message item.
+- **Provider registry vs server:** `src/lib/providers.ts` is shared with the browser — **no** `process.env`,
+  API keys, or provider SDK imports there. Keys and SDK instantiation live only in
+  `src/lib/providers.server.ts`. **`getModel` is the only place** that constructs a provider SDK instance;
+  UI and `/api/chat` must not branch on `if (provider === …)`.
 
 ### Message transforms and chat UI
 
@@ -130,15 +135,15 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.8 (UX polish) — delivered
+## Current phase: 1.9 (second provider switcher) — partial
 
-**Shipped:** dedicated markdown renderer (no raw HTML); selective syntax highlighting; code-block copy;
-typing indicator from `useChat` status; edit + truncate + resubmit for user messages.
+**Shipped:** provider registry + `providers.server.ts` (`getModel` / availability); OpenAI as second
+provider; composer model switcher; unconfigured options stay visible with reason; `docs/openai` +
+`add-provider` skill.
 
-**Out of scope for this step:** second UI component library, hand-written markdown CSS, new env/integrations,
-new skills.
+**Out of scope for this step:** pricing UI, token counting, side-by-side model comparison.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.8) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.9) before changing scope.
 
 ---
 

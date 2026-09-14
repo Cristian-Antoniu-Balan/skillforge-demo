@@ -293,6 +293,29 @@ Nimic aici nu adaugă „funcționalitate nouă” de produs, dar schimbă perce
 
 ---
 
+#### Faza 1.9 — Al doilea provider (comutator) _(livrată parțial)_
+
+Comutator Anthropic ↔ OpenAI lângă caseta de chat. Abstracția se justifică abia la al doilea provider: un provider nou = o intrare în registru, nu if-uri prin UI.
+
+**In scope (livrat):**
+
+- Registru unic `src/lib/providers.ts` (browser-safe: fără `process.env`, fără chei) — Anthropic primul/implicit; OpenAI al doilea
+- `src/lib/providers.server.ts`: `getModel` (singurul loc care instanțiază un SDK) + `isProviderConfigured` + disponibilitate ca date de afișat
+- `GET /api/providers` — UI-ul află cine e configurat **fără** a citi env în browser
+- Selector în composer: provider + **nume model**; opțiune neconfigurată rămâne vizibilă, dezactivată, cu motiv în tooltip
+- `POST /api/chat` primește `providerId` + `model` la fiecare mesaj; model necunoscut → default din registru; fără cheie → `400` lizibil
+- Documentație: `docs/openai/README.md` + rând index + `OPENAI_API_KEY` în `.env.example`
+- Skill `add-provider` (rețeta pentru al treilea provider)
+
+**Out of scope (rămâne pentru pași ulteriori):**
+
+- Prețuri în UI, numărare de tokeni, comparație side-by-side între modele
+- Al treilea provider (doar rețeta din skill)
+
+**De discutat la curs:** de ce un registru bate un lanț de `if`-uri (cum arată același cod peste patru providere); fiecare provider are propriul pachet SDK, dar interfața de apel rămâne aceeași; „configurat” e proprietate a serverului, nu a browserului.
+
+---
+
 ### Faza 2 — Memorie și progres
 
 **In scope:**
@@ -317,7 +340,7 @@ Nimic aici nu adaugă „funcționalitate nouă” de produs, dar schimbă perce
 **In scope:**
 
 - Tool calling: agentul invocă singur funcții (caută în notițe, actualizează plan, marchează progres)
-- Al doilea provider LLM pentru comparație cost/calitate
+- Comparație cost/calitate între providere (comutatorul de bază e în Faza 1.9)
 - Autentificare (dacă e nevoie pentru multi-device)
 - Monitorizare (logs, erori, cost tracking)
 - Fiecare integrare externă nouă → `docs/<integrare>/README.md`
@@ -344,6 +367,8 @@ Nimic aici nu adaugă „funcționalitate nouă” de produs, dar schimbă perce
 | Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus  |
 | „Răspunde cu titluri, listă, tabel și două blocuri de cod”     | Faza 1.8    | Formatat **în timp ce curge**; cod colorat + buton copiere      |
 | Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi |
+| Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat              |
+| OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge     |
 
 ### Format pentru criterii noi
 
@@ -449,4 +474,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: 2026-09-14 — Faza 1.8 (Finisaje UX: markdown, semnale, editare)_
+_Ultima actualizare: 2026-09-14 — Faza 1.9 (Al doilea provider: comutator) — livrată parțial (fără cost/comparație)_
