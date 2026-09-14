@@ -70,17 +70,17 @@ is lost on reinstall, new machine, or deploy.
 
 ## Technical stack
 
-| Component       | Technology                             | From phase |
-| --------------- | -------------------------------------- | ---------- |
-| Web framework   | Next.js 16 (App Router)                | 1.1        |
-| Language        | TypeScript                             | 1.1        |
-| Styling         | Tailwind CSS v4 + shadcn/ui            | 1.1        |
-| Formatting      | Prettier + prettier-plugin-tailwindcss | 1.1        |
-| Client state    | Zustand + persist (localStorage)       | 1.2        |
-| LLM integration | Vercel AI SDK                          | 1.3        |
-| LLM calls       | Server-side only                       | 1.3        |
-| Deploy          | Vercel (Preview + Production)          | 1.4        |
-| MVP users       | Single-user (no auth)                  | 1–2        |
+| Component       | Technology                                         | From phase |
+| --------------- | -------------------------------------------------- | ---------- |
+| Web framework   | Next.js 16 (App Router)                            | 1.1        |
+| Language        | TypeScript                                         | 1.1        |
+| Styling         | Tailwind CSS v4 + shadcn/ui                        | 1.1        |
+| Formatting      | Prettier + prettier-plugin-tailwindcss             | 1.1        |
+| Client state    | Zustand + persist (localStorage); theme on Context | 1.2 / 1.7  |
+| LLM integration | Vercel AI SDK                                      | 1.3        |
+| LLM calls       | Server-side only                                   | 1.3        |
+| Deploy          | Vercel (Preview + Production)                      | 1.4        |
+| MVP users       | Single-user (no auth)                              | 1–2        |
 
 ### Security
 
@@ -113,19 +113,26 @@ is lost on reinstall, new machine, or deploy.
 - **Hydration:** never act on pre-hydration defaults (e.g. empty `conversations`) — that creates a blank
   conversation on every page load. Gate UI on `useStoreHydration`.
 - **Context vs store:** rare values with few consumers → React context; frequently changing state read
-  from many places → Zustand with selectors. This app uses both (session context + app store).
+  from many places → Zustand with selectors. This app uses both (theme context + session context + app store).
+- **Theme is not in the store:** preference lives in `ThemeProvider` / `useTheme()`, persisted under
+  `skillforge-theme` (not inside `skillforge-app` / `partialize`). Do not re-add `theme` / `setTheme` to
+  the Zustand store.
+- **shadcn UI files:** do not hand-edit generated files under `src/components/ui/` unless documenting an
+  exception. **Exception:** `src/components/ui/sonner.tsx` uses our `useTheme()` so toasts follow the
+  chosen theme (the generated file depended on `next-themes` without a provider).
 
 ---
 
-## Current phase: 1.6 (Conversation archive in store)
+## Current phase: 1.7 (Theme on Context)
 
-**In scope:** archive messages in the persisted store at stream end; remount chat per conversation id;
-hydration gate (no empty-list flash); persist `version` + `migrate` to `UIMessage[]`; selector discipline;
-architecture notes in `docs/requirements.md`.
+**In scope:** move theme preference from the Zustand store to `createContext` + `useTheme()`; dedicated
+`skillforge-theme` key; blocking pre-paint script; `resolveTheme` kept pure; Sonner wired to our hook;
+document the reimplementation in `docs/requirements.md`.
 
-**Out of scope:** server persistence, PDF export, message editing, new env vars / integrations.
+**Out of scope:** theme libraries, new env vars / integrations, header theme toggle, removing
+`next-themes` from `package.json` by guesswork.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.6) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.7) before changing scope.
 
 ---
 

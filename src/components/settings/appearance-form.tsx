@@ -3,14 +3,13 @@
 // Formular Appearance — singurul loc unde utilizatorul schimbă tema (fără buton în header).
 import { Monitor, Moon, Sun } from "lucide-react";
 
+import { useTheme } from "@/components/theme/theme-provider";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ThemeMode } from "@/lib/types";
-import { useAppStore } from "@/store/useAppStore";
 
 export function AppearanceForm() {
-  const theme = useAppStore(state => state.theme);
-  const setTheme = useAppStore(state => state.setTheme);
+  const { preference, setTheme } = useTheme();
 
   return (
     <div className="space-y-6">
@@ -28,10 +27,10 @@ export function AppearanceForm() {
           className="border"
           id="appearance"
           onValueChange={values => {
-            const next = values.find(value => value !== theme);
+            const next = values.find(value => value !== preference);
             if (next) setTheme(next as ThemeMode);
           }}
-          value={[theme]}
+          value={[preference]}
           variant="outline"
         >
           <ToggleGroupItem aria-label="Sistem" value="system">

@@ -1,13 +1,15 @@
 "use client";
 
+// Excepție la regula „nu edităm manual fișiere din src/components/ui/”:
+// Sonner generat de shadcn folosea next-themes; fără providerul lor primea mereu „system”.
+// Legăm toast-urile de useTheme()-ul nostru ca să urmeze preferința din Appearance.
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from "lucide-react";
 
-import { resolveTheme, useAppStore } from "@/store/useAppStore";
+import { useTheme } from "@/components/theme/theme-provider";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const themeMode = useAppStore(state => state.theme);
-  const theme = resolveTheme(themeMode);
+  const { resolvedTheme } = useTheme();
 
   return (
     <Sonner
@@ -27,7 +29,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)"
         } as React.CSSProperties
       }
-      theme={theme}
+      theme={resolvedTheme}
       toastOptions={{
         classNames: {
           toast: "cn-toast"

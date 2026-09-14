@@ -49,7 +49,6 @@ export interface ProviderConfig {
 
 export interface AppStore {
   profile: Profile;
-  theme: ThemeMode;
   selectedProviderId: string;
   selectedModel: string;
   conversations: Conversation[];
@@ -60,7 +59,6 @@ export interface AppStore {
   settingsOpen: boolean;
   settingsTab: SettingsTab;
 
-  setTheme: (theme: ThemeMode) => void;
   setProfile: (profile: Profile) => void;
   setSettingsOpen: (open: boolean) => void;
   setSettingsTab: (tab: SettingsTab) => void;

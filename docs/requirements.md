@@ -116,7 +116,7 @@ Faza 1 este împărțită în sub-pași; fiecare livrează o bucată clară pest
 - Stări UI: empty state, skeleton, indicator „scrie…", alert erori
 - Mesaje mock navigabile; trimitere simulează răspuns assistant (fără LLM)
 - Responsive: sidebar în `Sheet` pe mobil
-- Temă system/light/dark — doar din Preferințe → Appearance
+- Temă system/light/dark — doar din Preferințe → Appearance _(reimplementată în 1.7 pe Context)_
 - **Fără** apel LLM, `/api/chat`, chei API
 
 **Out of scope:**
@@ -207,7 +207,7 @@ Lucru pe conversație fără sursă de adevăr nouă: butoanele citesc sau taie 
 - Persistență conversații pe server (Faza 2)
 - Integrare externă nouă / variabile env noi
 
-#### Faza 1.6 — Arhivă conversații în store _(curent)_
+#### Faza 1.6 — Arhivă conversații în store _(livrat)_
 
 Mesajele nu mai dispar la refresh sau la comutarea între conversații. Un singur loc persistent pentru arhivă; hook-ul de chat rămâne sursa de adevăr **doar** cât durează streamingul.
 
@@ -241,6 +241,29 @@ Mesajele nu mai dispar la refresh sau la comutarea între conversații. Un singu
 - PDF export, editare mesaje
 
 **De discutat la curs:** limita `localStorage` (câțiva MB) și ce se întâmplă când istoricul o atinge; de ce sync-ul la final înseamnă că un refresh mid-stream pierde răspunsul.
+
+#### Faza 1.7 — Temă pe Context _(curent)_
+
+Tema exista deja (1.2); aici se **mută** din store pe un mecanism propriu — didactic, pe cod real, nu o cerință nouă de produs.
+
+**Decizie:** preferința de temă iese din Zustand și trece pe `createContext` + `useState`. Motiv: un singur consumator logic (afișare), schimbare rară; Context transmite starea fără selectors. Store-ul rămâne pentru profil / conversații / provider — valori citite des din multe locuri.
+
+**In scope:**
+
+- `ThemeProvider` + `useTheme()` în `src/components/theme/theme-provider.tsx` (preferință, temă rezolvată, `setTheme`)
+- `resolveTheme` pură, exportată separat (`src/lib/resolve-theme.ts`) — singura regulă de decizie
+- Persistență pe cheia `skillforge-theme` (lazy init + `try/catch`); abonament `matchMedia` doar pe „sistem”
+- Script sincron în `layout.tsx` pe cheia nouă (+ punte temporară din `skillforge-app.state.theme`) — fără flash alb pe dark
+- `theme` / `setTheme` scoase din store și din `partialize`; consumatori pe `useTheme()`
+- Excepție documentată: `src/components/ui/sonner.tsx` folosește `useTheme()` (nu `next-themes`)
+
+**Out of scope:**
+
+- Librărie de teme (`next-themes` rămâne în `package.json` ca dependență tranzitivă / istorică — nu se șterge la ghici)
+- Integrare externă nouă / variabile env noi
+- Buton de temă în header (rămâne doar în Preferințe)
+
+**De discutat la curs:** de ce Context nu e „state management” (fără selectors — orice consumator se re-randează); flash-ul de hidratare și de ce în producție se folosește adesea o librărie; alegerea store vs context pe frecvența schimbării și pe numărul de cititori.
 
 ---
 
@@ -319,10 +342,10 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 | Aspect             | Faza 1.3 (MVP actual)                                                                                     | Faza 2–3+                                       |
 | ------------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); nu stă pe serverul aplicației             | Poate migra la DB server / cloud                |
+| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); tema pe cheie separată `skillforge-theme` | Poate migra la DB server / cloud                |
 | Acces              | Doar pe dispozitivul/browserul respectiv                                                                  | Autentificare necesară                          |
 | Trimitere la terți | La fiecare mesaj: profilul merge în system prompt → Anthropic (necesar pentru răspunsuri contextualizate) | Aceeași regulă + politică explicită documentată |
-| Ștergere           | Ștergere `localStorage` pentru cheia `skillforge-app` (sau DevTools → Application → Local Storage)        | Endpoint/mechanism documentat                   |
+| Ștergere           | Ștergere `localStorage` pentru `skillforge-app` / `skillforge-theme` (sau DevTools → Application)         | Endpoint/mechanism documentat                   |
 
 **Export (Faza 1.5):** fișierul descărcat (JSON/Markdown) conține **profilul + conversația**. Utilizatorul trebuie să știe ce iese din aplicație — poate trimite mai departe date personale fără să-și dea seama.
 
@@ -358,17 +381,17 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ## 8. Stack tehnic
 
-| Componentă              | Tehnologie                             | De la faza |
-| ----------------------- | -------------------------------------- | ---------- |
-| Framework web           | Next.js 16 (App Router)                | 1.1        |
-| Limbaj                  | TypeScript                             | 1.1        |
-| Styling                 | Tailwind CSS v4 + shadcn/ui            | 1.1        |
-| Formatare               | Prettier + prettier-plugin-tailwindcss | 1.1        |
-| Stare client            | Zustand + persist (localStorage)       | 1.2        |
-| LLM integration         | Vercel AI SDK                          | 1.3        |
-| Persistență profil      | Zustand (UI); server la 1.3+           | 1.2        |
-| Persistență conversații | SQLite sau JSON                        | 2          |
-| Deploy                  | Vercel                                 | 1.4        |
+| Componentă              | Tehnologie                                        | De la faza |
+| ----------------------- | ------------------------------------------------- | ---------- |
+| Framework web           | Next.js 16 (App Router)                           | 1.1        |
+| Limbaj                  | TypeScript                                        | 1.1        |
+| Styling                 | Tailwind CSS v4 + shadcn/ui                       | 1.1        |
+| Formatare               | Prettier + prettier-plugin-tailwindcss            | 1.1        |
+| Stare client            | Zustand + persist (localStorage); temă pe Context | 1.2 / 1.7  |
+| LLM integration         | Vercel AI SDK                                     | 1.3        |
+| Persistență profil      | Zustand (UI); server la 1.3+                      | 1.2        |
+| Persistență conversații | SQLite sau JSON                                   | 2          |
+| Deploy                  | Vercel                                            | 1.4        |
 
 ---
 
@@ -398,4 +421,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: 2026-09-14 — Faza 1.6 (Arhivă conversații în store)_
+_Ultima actualizare: 2026-09-14 — Faza 1.7 (Temă pe Context)_
