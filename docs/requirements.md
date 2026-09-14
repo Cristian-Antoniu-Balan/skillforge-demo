@@ -207,16 +207,51 @@ Lucru pe conversație fără sursă de adevăr nouă: butoanele citesc sau taie 
 - Persistență conversații pe server (Faza 2)
 - Integrare externă nouă / variabile env noi
 
+#### Faza 1.6 — Arhivă conversații în store _(curent)_
+
+Mesajele nu mai dispar la refresh sau la comutarea între conversații. Un singur loc persistent pentru arhivă; hook-ul de chat rămâne sursa de adevăr **doar** cât durează streamingul.
+
+**Decizie de arhitectură (nu se redescoperă în chat):**
+
+| Situație                    | Cine deține mesajele                                              |
+| --------------------------- | ----------------------------------------------------------------- |
+| Răspuns în curs (streaming) | `useChat` — construiește token cu token                           |
+| După stream / între sesiuni | Store-ul Zustand (`conversations[].messages`) — arhiva persistată |
+
+- **Sincronizare la finalul streamingului** (`onFinish`), nu per token. Motiv: `persist` scrie sincron în `localStorage`; o scriere per token blochează UI-ul pe conversații lungi.
+- **Compromis acceptat:** un răspuns întrerupt de refresh se pierde până la persistența pe server (Faza 2).
+- La deschiderea unei conversații: remount cu `key={conversationId}` + `messages` din arhivă (schimbarea id-ului activ singură nu resetează lista internă a hook-ului).
+- Hidratare amânată: nicio decizie pe `conversations=[]` înainte ca `localStorage` să fie citit (altfel apare o conversație goală la fiecare refresh).
+- Schimbare de formă: `Conversation.messages` = `UIMessage[]` → `version` + `migrate` pe persist.
+- Citiri din store prin **selectors**; un selector nu construiește obiecte/array-uri noi la fiecare apel.
+
+**In scope:**
+
+- `setConversationMessages` + sync din `onFinish`
+- Remount chat pe id conversație; poartă de hidratare (fără flash listă goală)
+- `version` / `migrate` pentru mesajele vechi (`content` → `parts`)
+- Comentarii: de ce store vs Context; de ce sync la final
+- Actualizare `docs/requirements.md` + `docs/agent-instructions.md`
+
+**Out of scope:**
+
+- Persistență pe server / DB (Faza 2)
+- Rezumare automată când `localStorage` atinge limita (~5 MB)
+- Integrare externă nouă / variabile env noi
+- PDF export, editare mesaje
+
+**De discutat la curs:** limita `localStorage` (câțiva MB) și ce se întâmplă când istoricul o atinge; de ce sync-ul la final înseamnă că un refresh mid-stream pierde răspunsul.
+
 ---
 
 ### Faza 2 — Memorie și progres
 
 **In scope:**
 
-- Persistență conversații între sesiuni
+- Persistență conversații pe **server** (nu doar `localStorage`) — inclusiv recuperare după refresh mid-stream
 - Actualizare profil/progres din conversație (ex. „am terminat modulul de streaming")
 - Plan de învățare structurat (pași, termene) stocat și injectat în system prompt
-- Istoric conversații vizibil în UI
+- Istoric conversații vizibil în UI _(lista locală există din 1.2 / 1.6; aici se leagă de backend)_
 - Răspunsuri contextuale la progres (ex. „ce urmează?")
 
 **Out of scope:**
@@ -250,13 +285,14 @@ Lucru pe conversație fără sursă de adevăr nouă: butoanele citesc sau taie 
 
 ### Exemple concrete
 
-| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                         |
-| -------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
-| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice  |
-| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare     |
-| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                |
-| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el      |
-| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid |
+| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                          |
+| -------------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
+| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice   |
+| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare      |
+| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                 |
+| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el       |
+| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid  |
+| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus |
 
 ### Format pentru criterii noi
 
@@ -362,4 +398,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: 2026-09-09 — Faza 1.5 (Acțiuni pe conversație + export)_
+_Ultima actualizare: 2026-09-14 — Faza 1.6 (Arhivă conversații în store)_

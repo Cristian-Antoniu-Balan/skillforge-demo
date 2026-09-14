@@ -1,4 +1,6 @@
 // Conversații inventate — înlocuite dintr-o singură atingere când vine backend-ul / LLM-ul.
+import type { UIMessage } from "ai";
+
 import { ANTHROPIC_CHAT_MODELS } from "@/lib/llm/models";
 import type { Conversation, ProviderConfig } from "@/lib/types";
 
@@ -11,6 +13,10 @@ export const mockProviders: ProviderConfig[] = [
   }
 ];
 
+function textMessage(id: string, role: UIMessage["role"], text: string): UIMessage {
+  return { id, role, parts: [{ type: "text", text }] };
+}
+
 export const mockConversations: Conversation[] = [
   {
     id: "conv-1",
@@ -18,32 +24,18 @@ export const mockConversations: Conversation[] = [
     createdAt: "2026-02-28T10:00:00.000Z",
     updatedAt: "2026-02-28T10:15:00.000Z",
     messages: [
-      {
-        id: "msg-1",
-        role: "user",
-        content: "Ce-mi lipsește ca să trec de la Java backend la AI engineer?",
-        createdAt: "2026-02-28T10:00:00.000Z"
-      },
-      {
-        id: "msg-2",
-        role: "assistant",
-        content:
-          "Pe baza profilului tău (Java avansat, Spring intermediar, TS/React începător), iată gap-urile principale:\n\n1. **Fundamentals ML/AI** — concepte de embeddings, tokenizare, prompt engineering\n2. **Python pentru AI** — ecosistemul standard (LangChain, notebooks)\n3. **Vector DB** — Pinecone, pgvector sau Chroma\n4. **LLM APIs** — apeluri server-side, streaming, tool calling\n5. **Frontend AI** — Vercel AI SDK, chat UI cu streaming\n\nRecomandare: 3 luni, începând cu Python + un proiect RAG mic peste documentația ta Spring.",
-        createdAt: "2026-02-28T10:01:30.000Z"
-      },
-      {
-        id: "msg-3",
-        role: "user",
-        content: "Poți detalia prima lună?",
-        createdAt: "2026-02-28T10:05:00.000Z"
-      },
-      {
-        id: "msg-4",
-        role: "assistant",
-        content:
-          "**Luna 1 — Fundamente**\n\n- Săpt. 1–2: Python crash course + Jupyter; reprodu un script simplu de embeddings cu OpenAI/Anthropic API\n- Săpt. 3: Documentează ce ai învățat; construiește un CLI care întreabă un PDF\n- Săpt. 4: Intro RAG — chunking, vector store local (Chroma)\n\nDeliverable: repo `java-dev-first-rag` cu README în română.",
-        createdAt: "2026-02-28T10:06:00.000Z"
-      }
+      textMessage("msg-1", "user", "Ce-mi lipsește ca să trec de la Java backend la AI engineer?"),
+      textMessage(
+        "msg-2",
+        "assistant",
+        "Pe baza profilului tău (Java avansat, Spring intermediar, TS/React începător), iată gap-urile principale:\n\n1. **Fundamentals ML/AI** — concepte de embeddings, tokenizare, prompt engineering\n2. **Python pentru AI** — ecosistemul standard (LangChain, notebooks)\n3. **Vector DB** — Pinecone, pgvector sau Chroma\n4. **LLM APIs** — apeluri server-side, streaming, tool calling\n5. **Frontend AI** — Vercel AI SDK, chat UI cu streaming\n\nRecomandare: 3 luni, începând cu Python + un proiect RAG mic peste documentația ta Spring."
+      ),
+      textMessage("msg-3", "user", "Poți detalia prima lună?"),
+      textMessage(
+        "msg-4",
+        "assistant",
+        "**Luna 1 — Fundamente**\n\n- Săpt. 1–2: Python crash course + Jupyter; reprodu un script simplu de embeddings cu OpenAI/Anthropic API\n- Săpt. 3: Documentează ce ai învățat; construiește un CLI care întreabă un PDF\n- Săpt. 4: Intro RAG — chunking, vector store local (Chroma)\n\nDeliverable: repo `java-dev-first-rag` cu README în română."
+      )
     ]
   },
   {
@@ -52,19 +44,12 @@ export const mockConversations: Conversation[] = [
     createdAt: "2026-03-01T14:00:00.000Z",
     updatedAt: "2026-03-01T14:30:00.000Z",
     messages: [
-      {
-        id: "msg-5",
-        role: "user",
-        content: "Fă-mi un plan de 3 luni pentru Next.js + AI SDK",
-        createdAt: "2026-03-01T14:00:00.000Z"
-      },
-      {
-        id: "msg-6",
-        role: "assistant",
-        content:
-          "**Plan 3 luni — Next.js + Vercel AI SDK**\n\n**Luna 1:** App Router, Route Handlers, streaming text cu `streamText`\n**Luna 2:** Profil persistent, system prompt din persona, memorie conversații\n**Luna 3:** Tool calling, al doilea provider, deploy Vercel\n\nFiecare lună = un proiect publicabil pe GitHub.",
-        createdAt: "2026-03-01T14:01:00.000Z"
-      }
+      textMessage("msg-5", "user", "Fă-mi un plan de 3 luni pentru Next.js + AI SDK"),
+      textMessage(
+        "msg-6",
+        "assistant",
+        "**Plan 3 luni — Next.js + Vercel AI SDK**\n\n**Luna 1:** App Router, Route Handlers, streaming text cu `streamText`\n**Luna 2:** Profil persistent, system prompt din persona, memorie conversații\n**Luna 3:** Tool calling, al doilea provider, deploy Vercel\n\nFiecare lună = un proiect publicabil pe GitHub."
+      )
     ]
   },
   {
@@ -73,19 +58,12 @@ export const mockConversations: Conversation[] = [
     createdAt: "2026-03-10T09:00:00.000Z",
     updatedAt: "2026-03-10T09:20:00.000Z",
     messages: [
-      {
-        id: "msg-7",
-        role: "user",
-        content: "Ajută-mă cu întrebări de interviu Spring Boot",
-        createdAt: "2026-03-10T09:00:00.000Z"
-      },
-      {
-        id: "msg-8",
-        role: "assistant",
-        content:
-          "Iată 5 întrebări clasice pentru nivelul tău:\n\n1. Diferența `@Component` vs `@Service` vs `@Repository`\n2. Ciclul de viață al unui `@Bean`\n3. `@Transactional` — propagare și rollback\n4. Spring Security filter chain — ordinea\n5. Cum testezi un `@RestController` cu `@WebMvcTest`\n\nVrei să le parcurgem pe rând cu răspunsuri model?",
-        createdAt: "2026-03-10T09:02:00.000Z"
-      }
+      textMessage("msg-7", "user", "Ajută-mă cu întrebări de interviu Spring Boot"),
+      textMessage(
+        "msg-8",
+        "assistant",
+        "Iată 5 întrebări clasice pentru nivelul tău:\n\n1. Diferența `@Component` vs `@Service` vs `@Repository`\n2. Ciclul de viață al unui `@Bean`\n3. `@Transactional` — propagare și rollback\n4. Spring Security filter chain — ordinea\n5. Cum testezi un `@RestController` cu `@WebMvcTest`\n\nVrei să le parcurgem pe rând cu răspunsuri model?"
+      )
     ]
   }
 ];

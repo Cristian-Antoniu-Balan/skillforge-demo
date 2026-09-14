@@ -97,17 +97,35 @@ is lost on reinstall, new machine, or deploy.
 - **Product rule:** no action bar above the conversation. New chat stays in the sidebar; export in the header
   menu; copy / regenerate appear on the message (hover). The chat center stays clean.
 
+### Message ownership and store reads
+
+- **While streaming:** `useChat` owns messages (token-by-token). Do **not** write them to the persisted store
+  on every token — `persist` sync-writes `localStorage` and will freeze the UI on long replies.
+- **After the stream (`onFinish`):** the Zustand store is the archive (`conversations[].messages`). Sync once.
+- **Opening a conversation:** remount the chat owner with `key={conversationId}` and pass archived
+  `messages` into `useChat`. Changing `activeConversationId` alone does not reset the hook’s internal list.
+- **Store reads:** always use selectors — `useAppStore(s => s.providerId)`, never `useAppStore()` then
+  destructure (that subscribes to every store change).
+- **Selectors must not return fresh objects/arrays** on each call (`s => ({ a: s.a })` or `?? []` without a
+  stable empty constant) — that forces infinite re-renders. Use separate selectors or `useShallow`.
+- **Persisted shape changes** require bumping persist `version` and a `migrate` function. Skipping this
+  surfaces as a cryptic UI crash far from the store.
+- **Hydration:** never act on pre-hydration defaults (e.g. empty `conversations`) — that creates a blank
+  conversation on every page load. Gate UI on `useStoreHydration`.
+- **Context vs store:** rare values with few consumers → React context; frequently changing state read
+  from many places → Zustand with selectors. This app uses both (session context + app store).
+
 ---
 
-## Current phase: 1.5 (Conversation actions + export)
+## Current phase: 1.6 (Conversation archive in store)
 
-**In scope:** regenerate (replace, not append); copy with toast + clipboard guard; new chat via
-`setMessages` + confirm; export JSON/Markdown (profile + conversation + date); pure helpers in
-`message-utils.ts`; UI placement as above.
+**In scope:** archive messages in the persisted store at stream end; remount chat per conversation id;
+hydration gate (no empty-list flash); persist `version` + `migrate` to `UIMessage[]`; selector discipline;
+architecture notes in `docs/requirements.md`.
 
-**Out of scope:** PDF export, message editing, server persistence, new env vars / integrations.
+**Out of scope:** server persistence, PDF export, message editing, new env vars / integrations.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.5) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.6) before changing scope.
 
 ---
 

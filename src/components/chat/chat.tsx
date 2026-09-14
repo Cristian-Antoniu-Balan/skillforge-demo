@@ -1,7 +1,9 @@
 "use client";
 
-// Singurul boundary client pentru chat — useChat deține istoricul și stream-ul.
-// Provider-ul ridică sesiunea peste sidebar/header ca New/Export să taie aceeași listă.
+// Boundary client pentru chat.
+// useChat deține mesajele cât timp răspunsul curge; store-ul e arhiva după onFinish.
+// key={conversationId} remontează hook-ul cu mesajele din arhivă — schimbarea id-ului
+// activ singură nu-i resetează lista internă (ai vedea discuția precedentă).
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
@@ -21,6 +23,9 @@ import {
 } from "@/lib/message-utils";
 import { useAppStore } from "@/store/useAppStore";
 
+/** Referință stabilă — `?? []` într-un selector creează un array nou la fiecare apel → re-render infinit. */
+const EMPTY_MESSAGES: UIMessage[] = [];
+
 function titleFromMessage(content: string) {
   const trimmed = content.trim();
   return trimmed.length > 42 ? `${trimmed.slice(0, 42)}…` : trimmed || "Conversație nouă";
@@ -37,7 +42,6 @@ function formatChatError(error: Error) {
 }
 
 interface ChatViewValue {
-  hydrated: boolean;
   messages: UIMessage[];
   isBusy: boolean;
   status: "submitted" | "streaming" | "ready" | "error";
@@ -53,13 +57,20 @@ interface ChatViewValue {
 
 const ChatViewContext = createContext<ChatViewValue | null>(null);
 
-export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
+interface ChatSessionInnerProps {
+  activeConversationId: string | null;
+  initialMessages: UIMessage[];
+  /** În afara `key` — altfel se pierde la remontare când createConversation schimbă id-ul. */
+  pendingTextRef: RefObject<string | null>;
+  children: React.ReactNode;
+}
+
+function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRef, children }: ChatSessionInnerProps) {
   const profile = useAppStore(state => state.profile);
   const selectedModel = useAppStore(state => state.selectedModel);
-  const activeConversationId = useAppStore(state => state.activeConversationId);
   const createConversation = useAppStore(state => state.createConversation);
   const renameConversation = useAppStore(state => state.renameConversation);
-  const conversations = useAppStore(state => state.conversations);
+  const setConversationMessages = useAppStore(state => state.setConversationMessages);
 
   const profileRef = useRef(profile);
   profileRef.current = profile;
@@ -67,10 +78,8 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
   const modelRef = useRef(selectedModel);
   modelRef.current = selectedModel;
 
-  const pendingTextRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
-  const [hydrated, setHydrated] = useState(false);
 
   const transport = useMemo(
     () =>
@@ -84,16 +93,19 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
 
   const { messages, sendMessage, status, stop, error, clearError, setMessages, regenerate } = useChat({
     id: activeConversationId ?? "new",
-    transport
+    messages: initialMessages,
+    transport,
+    onFinish: ({ messages: finishedMessages }) => {
+      // O singură scriere la final: persist e sincron pe localStorage; per token = UI blocat.
+      // Compromis: refresh în mijlocul stream-ului pierde răspunsul curent (până la persistența pe server).
+      if (!activeConversationId) return;
+      setConversationMessages(activeConversationId, finishedMessages);
+    }
   });
 
   const isBusy = status === "submitted" || status === "streaming";
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  // New / switch recrează chat-ul (id schimbat). Mesajul așteptat de la primul send se trimite după.
+  // Primul send pe conversație abia creată: textul așteaptă remontarea cu noul id.
   useEffect(() => {
     const pending = pendingTextRef.current;
     if (!pending || !activeConversationId) return;
@@ -101,7 +113,7 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
     void sendMessage({ text: pending }).then(() => {
       inputRef.current?.focus();
     });
-  }, [activeConversationId, sendMessage]);
+  }, [activeConversationId, pendingTextRef, sendMessage]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -116,7 +128,8 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const conversation = conversations.find(c => c.id === activeConversationId);
+    // Titlul din store, nu din lista useChat — evităm subscribe pe tot conversations[].
+    const conversation = useAppStore.getState().conversations.find(c => c.id === activeConversationId);
     if (conversation && (conversation.title === "Conversație nouă" || messages.length === 0)) {
       renameConversation(activeConversationId, titleFromMessage(text));
     }
@@ -130,16 +143,16 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
     activeConversationId,
     createConversation,
     renameConversation,
-    conversations,
     messages.length,
+    pendingTextRef,
     sendMessage
   ]);
 
   const startNewChat = useCallback(() => {
-    // Golirea e distructivă pentru lista din useChat — confirmăm înainte să tăiem.
+    // Golirea e distructivă pentru ecranul curent — confirmăm; arhiva conversației vechi rămâne în store.
     if (messages.length > 0) {
       const confirmed = window.confirm(
-        "Începi o conversație nouă? Mesajele din chatul curent vor fi golite din acest ecran."
+        "Începi o conversație nouă? Mesajele din chatul curent rămân salvate în lista din stânga."
       );
       if (!confirmed) return;
       setMessages([]);
@@ -158,7 +171,7 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
 
   const exportConversation = useCallback(
     (format: ExportFormat) => {
-      const conversation = conversations.find(c => c.id === activeConversationId);
+      const conversation = useAppStore.getState().conversations.find(c => c.id === activeConversationId);
       const title = conversation?.title ?? "Conversație SkillForge";
       const payload = buildExportPayload(messages, profile, title);
       const content = format === "json" ? serializeExportJson(payload) : serializeExportMarkdown(payload);
@@ -167,7 +180,7 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
       downloadTextFile(filename, content, mimeType);
       toast.success(format === "json" ? "Export JSON descărcat" : "Export Markdown descărcat");
     },
-    [conversations, activeConversationId, messages, profile]
+    [activeConversationId, messages, profile]
   );
 
   const sessionValue = useMemo<ChatSessionValue>(
@@ -183,7 +196,6 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
 
   const viewValue = useMemo<ChatViewValue>(
     () => ({
-      hydrated,
       messages,
       isBusy,
       status,
@@ -196,13 +208,36 @@ export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
       stop,
       regenerateMessage
     }),
-    [hydrated, messages, isBusy, status, error, clearError, input, handleSend, stop, regenerateMessage]
+    [messages, isBusy, status, error, clearError, input, handleSend, stop, regenerateMessage]
   );
 
   return (
     <ChatSessionProvider value={sessionValue}>
       <ChatViewContext.Provider value={viewValue}>{children}</ChatViewContext.Provider>
     </ChatSessionProvider>
+  );
+}
+
+export function ChatSessionRoot({ children }: { children: React.ReactNode }) {
+  const activeConversationId = useAppStore(state => state.activeConversationId);
+  // Selector pe referința mesajelor din arhivă — nu pe un obiect nou {a,b}.
+  const archivedMessages = useAppStore(state => {
+    if (!state.activeConversationId) return EMPTY_MESSAGES;
+    return state.conversations.find(c => c.id === state.activeConversationId)?.messages ?? EMPTY_MESSAGES;
+  });
+
+  // pendingTextRef stă aici: ChatSessionInner se remontează la schimbarea id-ului.
+  const pendingTextRef = useRef<string | null>(null);
+
+  return (
+    <ChatSessionInner
+      key={activeConversationId ?? "new"}
+      activeConversationId={activeConversationId}
+      initialMessages={archivedMessages}
+      pendingTextRef={pendingTextRef}
+    >
+      {children}
+    </ChatSessionInner>
   );
 }
 
@@ -213,7 +248,6 @@ export function Chat() {
   }
 
   const {
-    hydrated,
     messages,
     isBusy,
     status,
@@ -226,14 +260,6 @@ export function Chat() {
     stop,
     regenerateMessage
   } = props;
-
-  if (!hydrated) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <MessageList isBusy={false} messages={[]} />
-      </div>
-    );
-  }
 
   const showEmpty = messages.length === 0 && !isBusy;
   const errorText = error ? formatChatError(error) : null;

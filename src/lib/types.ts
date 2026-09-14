@@ -1,5 +1,7 @@
 // Tipuri partajate — un singur loc ca mock-ul, store-ul și UI-ul să vorbească aceeași limbă.
 // La integrarea LLM, înlocuim doar sursa datelor, nu structura.
+import type { UIMessage } from "ai";
+
 export type SkillLevel = "începător" | "intermediar" | "avansat";
 
 export const SKILL_LEVELS: SkillLevel[] = ["începător", "intermediar", "avansat"];
@@ -16,6 +18,7 @@ export interface Profile {
   objective: string;
 }
 
+/** Format vechi (Faza 1.2) — păstrat pentru migrate din localStorage. */
 export type MessageRole = "user" | "assistant";
 
 export interface Message {
@@ -28,7 +31,8 @@ export interface Message {
 export interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
+  /** Arhivă: același format ca useChat, ca re-inițializarea să nu convertească la fiecare deschidere. */
+  messages: UIMessage[];
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +69,8 @@ export interface AppStore {
   createConversation: () => string;
   renameConversation: (id: string, title: string) => void;
   deleteConversation: (id: string) => void;
+  /** Scrie în arhivă mesajele complete — apelat la final de stream, nu per token. */
+  setConversationMessages: (id: string, messages: UIMessage[]) => void;
   sendMessage: (content: string) => void;
   stopGeneration: () => void;
   clearError: () => void;
