@@ -327,12 +327,14 @@ Fiecare conversație din istoric poate fi legată de un tag de tehnologie (`tech
 - Settings → tab **Chats**: dropdown „Lista tehnologii”, New / Edit / Delete (Edit/Delete doar cu selecție validă); modale reutilizabile; validare max 20 caractere; delete refuzat dacă există chat-uri pe tag
 - Sidebar: meniu conversație **Grupează / Redenumește / Șterge**; modal Grupează (select căutabil, Add new on-the-fly, OK / Cancel / Remove)
 - Filtru sub „Chats and tasks”: All, Fără tag, apoi tag-urile sortate A→Z
+- **Search for** sub „Chats and tasks”: input text (label „Search for”), debounce, max 20 caractere, clear; la settled filtrează lista după regex pe conținutul conversațiilor; AND cu filtrul de tehnologie; highlight pe match-uri în chat-ul activ
 - Componentă reutilizabilă `ActionDialog` pentru new / edit / delete / grupează
-- Comentarii `TODO` în cod: preluare din DB; alte validări; error handling pe new/edit/delete/ok/remove — **fără implementare acum**
+- Comentarii `TODO` în cod: preluare din DB; filtrare Search for în DB; validare input Search for; alte validări; error handling pe new/edit/delete/ok/remove — **fără implementare acum**
 
 **Out of scope:**
 
 - Preluare tag-uri din DB
+- Filtrare Search for pe server / DB (doar regex local pe store)
 - Validări avansate (unicitate etc.) și error handling complet pe operații
 - Grupare vizuală pe secțiuni în listă (doar asociere + filtru)
 - Prețuri / tokeni / al treilea provider
@@ -395,6 +397,7 @@ Fiecare conversație din istoric poate fi legată de un tag de tehnologie (`tech
 | Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat              |
 | OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge     |
 | Grupează un chat pe „TypeScript”, filtrează lista              | Faza 1.10   | Doar chat-urile cu acel tag; „Fără tag” ascunde grupatele       |
+| Search for „Spring” + filtru tehnologie                        | Faza 1.10   | AND: doar chat-urile cu tag-ul ales care conțin textul; highlight în chat |
 | Șterge un tag folosit de un chat                               | Faza 1.10   | Tag-ul rămâne; mesaj de eroare în modal                         |
 
 ### Format pentru criterii noi

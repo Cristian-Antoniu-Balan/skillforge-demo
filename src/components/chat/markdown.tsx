@@ -5,7 +5,7 @@
 // (un <img onerror=…> din răspuns ar deveni XSS).
 import type { Root, Element, ElementContent, Text } from "hast";
 import type { Components } from "react-markdown";
-import { Component, createElement, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, createElement, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { createLowlight } from "lowlight";
@@ -19,6 +19,7 @@ import { Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { splitBySearchHighlight, tryCompileSearchRegex } from "@/lib/conversation-search";
 import { isClipboardAvailable } from "@/lib/message-utils";
 import { cn } from "@/lib/utils";
 
@@ -153,8 +154,59 @@ const markdownComponents: Components = {
       {children}
     </a>
   ),
-  pre: ({ children }) => <CodeBlock>{children}</CodeBlock>
+  pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+  // Mark din rehypeSearchHighlight — nu din HTML-ul modelului (fără rehype-raw).
+  mark: ({ children }) => (
+    <mark className="rounded-sm bg-amber-200 px-0.5 text-inherit dark:bg-amber-500/40">{children}</mark>
+  )
 };
+
+/** Nu întrerupem tokenizarea din code / link-uri — highlight doar pe textul vizibil. */
+function isSearchHighlightSkipped(tagName: string): boolean {
+  return tagName === "code" || tagName === "pre" || tagName === "a";
+}
+
+function highlightHastChildren(children: ElementContent[], query: string): ElementContent[] {
+  if (!tryCompileSearchRegex(query)) return children;
+
+  return children.flatMap((node): ElementContent[] => {
+    if (node.type === "text") {
+      return splitBySearchHighlight((node as Text).value, query).map((segment): ElementContent => {
+        if (!segment.match) {
+          return { type: "text", value: segment.text };
+        }
+        return {
+          type: "element",
+          tagName: "mark",
+          properties: {},
+          children: [{ type: "text", value: segment.text }]
+        };
+      });
+    }
+
+    if (node.type === "element") {
+      const el = node as Element;
+      if (isSearchHighlightSkipped(el.tagName)) {
+        return [el];
+      }
+      return [
+        {
+          ...el,
+          children: highlightHastChildren(el.children, query)
+        }
+      ];
+    }
+
+    return [node];
+  });
+}
+
+/** rehype: înfășoară potrivirile Search for în <mark> (generat de noi, nu din răspunsul modelului). */
+function createSearchHighlightRehype(query: string) {
+  return () => (tree: Root) => {
+    tree.children = highlightHastChildren(tree.children as ElementContent[], query) as Root["children"];
+  };
+}
 
 /** În streaming markdown-ul e incomplet; dacă parserul aruncă, arătăm textul brut — UI-ul nu cade. */
 class MarkdownErrorBoundary extends Component<{ content: string; children: ReactNode }, { hasError: boolean }> {
@@ -186,9 +238,17 @@ class MarkdownErrorBoundary extends Component<{ content: string; children: React
 interface MarkdownProps {
   content: string;
   className?: string;
+  /** Query settled din Search for — goale = fără highlight. */
+  highlightQuery?: string;
 }
 
-export function Markdown({ content, className }: MarkdownProps) {
+export function Markdown({ content, className, highlightQuery = "" }: MarkdownProps) {
+  const rehypePlugins = useMemo(() => {
+    const trimmed = highlightQuery.trim();
+    if (!trimmed || !tryCompileSearchRegex(trimmed)) return undefined;
+    return [createSearchHighlightRehype(trimmed)];
+  }, [highlightQuery]);
+
   return (
     <MarkdownErrorBoundary content={content}>
       <div
@@ -202,7 +262,9 @@ export function Markdown({ content, className }: MarkdownProps) {
         <ReactMarkdown
           components={markdownComponents}
           // Fără rehype-raw / fără rehypePlugins care injectează HTML din răspuns.
+          // rehypeSearchHighlight doar înfășoară text existent în <mark> generat local.
           remarkPlugins={remarkPlugins}
+          rehypePlugins={rehypePlugins}
         >
           {content}
         </ReactMarkdown>

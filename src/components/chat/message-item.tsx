@@ -34,6 +34,7 @@ export function MessageItem({
   onEdit
 }: MessageItemProps) {
   const profileName = useAppStore(state => state.profile.name);
+  const conversationSearchQuery = useAppStore(state => state.conversationSearchQuery);
   const isUser = message.role === "user";
   const content = getMessageText(message);
   // După mount: pe server / IP local clipboard poate lipsi — evităm crash și mismatch de hidratare.
@@ -134,7 +135,11 @@ export function MessageItem({
               </div>
             </div>
           ) : (
-            <Markdown className={cn(isUser && "prose-invert [&_a]:text-primary-foreground")} content={content} />
+            <Markdown
+              className={cn(isUser && "prose-invert [&_a]:text-primary-foreground")}
+              content={content}
+              highlightQuery={conversationSearchQuery}
+            />
           )}
           {!isEditing && content && (canCopy || showRegenerate || canEdit) && (
             <div

@@ -101,10 +101,12 @@ export const useAppStore = create<AppStore>()(
       error: null,
       settingsOpen: false,
       settingsTab: "general",
+      conversationSearchQuery: "",
 
       setProfile: profile => set({ profile }),
       setSettingsOpen: settingsOpen => set({ settingsOpen }),
       setSettingsTab: settingsTab => set({ settingsTab }),
+      setConversationSearchQuery: conversationSearchQuery => set({ conversationSearchQuery }),
       setSelectedProvider: (providerId, model) => set({ selectedProviderId: providerId, selectedModel: model }),
       setActiveConversation: activeConversationId => set({ activeConversationId, error: null }),
       clearError: () => set({ error: null }),
@@ -194,8 +196,8 @@ export const useAppStore = create<AppStore>()(
       skipHydration: true,
       partialize: (state): PersistedSlice => ({
         // Doar ce trebuie să supraviețuiască refresh-ului.
-        // isLoading / isTyping / error / settingsOpen rămân în memorie: altfel redeschizi
-        // aplicația pe „se încarcă…" sau pe o eroare de acum trei zile.
+        // isLoading / isTyping / error / settingsOpen / conversationSearchQuery rămân în memorie:
+        // altfel redeschizi aplicația pe „se încarcă…" sau pe o eroare / filtru de acum trei zile.
         // Tema are cheie proprie (skillforge-theme) — nu o amestecăm aici.
         profile: state.profile,
         selectedProviderId: state.selectedProviderId,

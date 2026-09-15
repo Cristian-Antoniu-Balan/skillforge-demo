@@ -2,8 +2,8 @@
 
 // Sidebar-ul principal — structura în 3 zone ca la claude.ai: acțiune, istoric, utilizator.
 // Folosim componenta shadcn sidebar ca pe mobil să intre automat în Sheet.
-import { ChevronUp, MoreHorizontal, Plus } from "lucide-react";
-import { useState } from "react";
+import { ChevronUp, MoreHorizontal, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { GroupConversationDialog } from "@/components/chat/group-conversation-dialog";
 import { useChatSession } from "@/components/chat/chat-session-context";
@@ -31,11 +31,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { CONVERSATION_SEARCH_MAX_LENGTH, conversationMatchesSearch } from "@/lib/conversation-search";
 import { cn } from "@/lib/utils";
 import { sortTechnologies, useAppStore } from "@/store/useAppStore";
 
 const FILTER_ALL = "all";
 const FILTER_UNTAGGED = "untagged";
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function AppSidebar() {
   const profile = useAppStore(state => state.profile);
@@ -43,6 +46,8 @@ export function AppSidebar() {
   const technologies = useAppStore(state => state.technologies);
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
+  const conversationSearchQuery = useAppStore(state => state.conversationSearchQuery);
+  const setConversationSearchQuery = useAppStore(state => state.setConversationSearchQuery);
   const { startNewChat } = useChatSession();
   const renameConversation = useAppStore(state => state.renameConversation);
   const deleteConversation = useAppStore(state => state.deleteConversation);
@@ -53,6 +58,13 @@ export function AppSidebar() {
   const [renameValue, setRenameValue] = useState("");
   const [tagFilter, setTagFilter] = useState<string>(FILTER_ALL);
   const [groupingConversationId, setGroupingConversationId] = useState<string | null>(null);
+  const [searchDraft, setSearchDraft] = useState("");
+  const settledSearchQuery = useDebouncedValue(searchDraft, SEARCH_DEBOUNCE_MS);
+
+  // Filtrul și highlight-ul citesc query-ul settled din store (nu draft-ul).
+  useEffect(() => {
+    setConversationSearchQuery(settledSearchQuery);
+  }, [settledSearchQuery, setConversationSearchQuery]);
 
   const initials = profile.name
     .split(" ")
@@ -62,13 +74,19 @@ export function AppSidebar() {
     .toUpperCase();
 
   const sortedTechnologies = sortTechnologies(technologies);
-
+  console.log(conversations);
+  // Filtre pe listă: tehnologie AND Search for (când e settled).
   const filteredConversations = conversations.filter(conversation => {
-    if (tagFilter === FILTER_ALL) return true;
-    if (tagFilter === FILTER_UNTAGGED) {
-      return conversation.technologyId == null || conversation.technologyId === "";
-    }
-    return conversation.technologyId === tagFilter;
+    const matchesTag = (() => {
+      if (tagFilter === FILTER_ALL) return true;
+      if (tagFilter === FILTER_UNTAGGED) {
+        return conversation.technologyId == null || conversation.technologyId === "";
+      }
+      return conversation.technologyId === tagFilter;
+    })();
+
+    if (!matchesTag) return false;
+    return conversationMatchesSearch(conversation, conversationSearchQuery);
   });
 
   const handleRename = (id: string) => {
@@ -77,6 +95,11 @@ export function AppSidebar() {
     }
     setRenamingId(null);
     setRenameValue("");
+  };
+
+  const clearSearch = () => {
+    setSearchDraft("");
+    setConversationSearchQuery("");
   };
 
   return (
@@ -91,24 +114,53 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup className="flex min-h-0 flex-1 flex-col px-0">
           <SidebarGroupLabel className="px-4">Chats and tasks</SidebarGroupLabel>
-          <div className="space-y-1 px-4 pb-2">
-            <Label className="text-xs text-muted-foreground" htmlFor="sidebar-tag-filter">
-              Filtru tehnologie
-            </Label>
-            <Select onValueChange={value => setTagFilter(String(value))} value={tagFilter}>
-              <SelectTrigger className="w-full" id="sidebar-tag-filter" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={FILTER_ALL}>All</SelectItem>
-                <SelectItem value={FILTER_UNTAGGED}>Fără tag</SelectItem>
-                {sortedTechnologies.map(tech => (
-                  <SelectItem key={tech.id} value={tech.id}>
-                    {tech.tag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-2 px-4 pb-2">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground" htmlFor="sidebar-conversation-search">
+                Search for
+              </Label>
+              <div className="relative">
+                <Input
+                  className="pr-8"
+                  id="sidebar-conversation-search"
+                  maxLength={CONVERSATION_SEARCH_MAX_LENGTH}
+                  onChange={event => {
+                    // TODO: validare input (ex. pattern periculos / caractere interzise) — pe moment doar maxLength.
+                    setSearchDraft(event.target.value.slice(0, CONVERSATION_SEARCH_MAX_LENGTH));
+                  }}
+                  value={searchDraft}
+                />
+                {searchDraft.length > 0 && (
+                  <button
+                    aria-label="Clear search"
+                    className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    onClick={clearSearch}
+                    type="button"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground" htmlFor="sidebar-tag-filter">
+                Filtru tehnologie
+              </Label>
+              <Select onValueChange={value => setTagFilter(String(value))} value={tagFilter}>
+                <SelectTrigger className="w-full" id="sidebar-tag-filter" size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={FILTER_ALL}>All</SelectItem>
+                  <SelectItem value={FILTER_UNTAGGED}>Fără tag</SelectItem>
+                  {sortedTechnologies.map(tech => (
+                    <SelectItem key={tech.id} value={tech.id}>
+                      {tech.tag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <SidebarGroupContent className="min-h-0 flex-1 px-2">
             <ScrollArea className="h-[calc(100vh-14rem)] pr-1">

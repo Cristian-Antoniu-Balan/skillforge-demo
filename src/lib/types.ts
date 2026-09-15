@@ -64,10 +64,13 @@ export interface AppStore {
   error: string | null;
   settingsOpen: boolean;
   settingsTab: SettingsTab;
+  /** Query settled (debounce) pentru Search for — nu e persistat. */
+  conversationSearchQuery: string;
 
   setProfile: (profile: Profile) => void;
   setSettingsOpen: (open: boolean) => void;
   setSettingsTab: (tab: SettingsTab) => void;
+  setConversationSearchQuery: (query: string) => void;
   setSelectedProvider: (providerId: string, model: string) => void;
   setActiveConversation: (id: string | null) => void;
   createConversation: () => string;

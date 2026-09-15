@@ -144,11 +144,13 @@ is lost on reinstall, new machine, or deploy.
 model switcher; `docs/openai` + `add-provider` skill.
 
 **In progress (1.10):** `technologyId` on conversations; technology tags in Zustand (seed + CRUD in
-Settings → Chats); sidebar filter + Grupează modal; reusable `ActionDialog`. TODOs left in code for
-DB fetch, extra validation, and error handling — not implemented yet.
+Settings → Chats); sidebar technology filter + **Search for** (debounced regex on conversation
+content, AND with tag filter, highlight in active chat) + Grupează modal; reusable `ActionDialog`.
+TODOs left in code for DB fetch, Search-for DB filter, input validation, and error handling — not
+implemented yet.
 
 **Out of scope for this step:** pricing UI, token counting, side-by-side model comparison, DB-backed
-tags.
+tags / search.
 
 Re-read `docs/requirements.md` section 5 (Faza 1.10) before changing scope.
 
