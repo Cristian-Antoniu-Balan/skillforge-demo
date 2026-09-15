@@ -316,6 +316,31 @@ Comutator Anthropic ↔ OpenAI lângă caseta de chat. Abstracția se justifică
 
 ---
 
+#### Faza 1.10 — Grupare chat-uri pe tehnologii _(în curs)_
+
+Fiecare conversație din istoric poate fi legată de un tag de tehnologie (`technologyId`, opțional). Lista de tag-uri e seed hardcodat în Zustand; CRUD din Settings → Chats; filtrare și „Grupează” în sidebar.
+
+**In scope:**
+
+- Tip `TechnologyTag` `{ id, tag }` + `Conversation.technologyId` (null/undefined = negrupat)
+- Seed predefinit (`DEFAULT_TECHNOLOGIES`) încărcat în store la inițializare; persist + migrate v2
+- Settings → tab **Chats**: dropdown „Lista tehnologii”, New / Edit / Delete (Edit/Delete doar cu selecție validă); modale reutilizabile; validare max 20 caractere; delete refuzat dacă există chat-uri pe tag
+- Sidebar: meniu conversație **Grupează / Redenumește / Șterge**; modal Grupează (select căutabil, Add new on-the-fly, OK / Cancel / Remove)
+- Filtru sub „Chats and tasks”: All, Fără tag, apoi tag-urile sortate A→Z
+- Componentă reutilizabilă `ActionDialog` pentru new / edit / delete / grupează
+- Comentarii `TODO` în cod: preluare din DB; alte validări; error handling pe new/edit/delete/ok/remove — **fără implementare acum**
+
+**Out of scope:**
+
+- Preluare tag-uri din DB
+- Validări avansate (unicitate etc.) și error handling complet pe operații
+- Grupare vizuală pe secțiuni în listă (doar asociere + filtru)
+- Prețuri / tokeni / al treilea provider
+
+**De discutat la curs:** de ce `technologyId` pe conversație (nu o listă de chat-uri pe tag) simplifică filtrul; de ce delete tag e blocat când e în uz (integritate locală înainte de DB).
+
+---
+
 ### Faza 2 — Memorie și progres
 
 **In scope:**
@@ -369,6 +394,8 @@ Comutator Anthropic ↔ OpenAI lângă caseta de chat. Abstracția se justifică
 | Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi |
 | Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat              |
 | OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge     |
+| Grupează un chat pe „TypeScript”, filtrează lista              | Faza 1.10   | Doar chat-urile cu acel tag; „Fără tag” ascunde grupatele       |
+| Șterge un tag folosit de un chat                               | Faza 1.10   | Tag-ul rămâne; mesaj de eroare în modal                         |
 
 ### Format pentru criterii noi
 

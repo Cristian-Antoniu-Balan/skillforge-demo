@@ -2,10 +2,11 @@
 
 // Dialog separat pentru preferințe — nu înlocuiește conversația, ca la claude.ai.
 // Registru SECTIONS: o intrare = un tab; fără if-uri pe id la randare.
-import { Info, Settings, Sparkles, UserRound } from "lucide-react";
+import { Info, MessageSquare, Settings, Sparkles, UserRound } from "lucide-react";
 
 import { AboutForm } from "@/components/settings/about-form";
 import { AppearanceForm } from "@/components/settings/appearance-form";
+import { ChatsForm } from "@/components/settings/chats-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { ProvidersForm } from "@/components/settings/providers-form";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +23,7 @@ const SECTIONS: {
   { id: "general", label: "General", icon: Settings, Component: AppearanceForm },
   { id: "profile", label: "Profilul tău", icon: UserRound, Component: ProfileForm },
   { id: "providers", label: "Providere", icon: Sparkles, Component: ProvidersForm },
+  { id: "chats", label: "Chats", icon: MessageSquare, Component: ChatsForm },
   { id: "about", label: "Despre aplicație", icon: Info, Component: AboutForm }
 ];
 

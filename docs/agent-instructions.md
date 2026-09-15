@@ -135,15 +135,19 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.9 (second provider switcher) — partial
+## Current phase: 1.10 (chat grouping by technology) — in progress
 
-**Shipped:** provider registry + `providers.server.ts` (`getModel` / availability); OpenAI as second
-provider; composer model switcher; unconfigured options stay visible with reason; `docs/openai` +
-`add-provider` skill.
+**Shipped (1.9):** provider registry + `providers.server.ts`; OpenAI as second provider; composer
+model switcher; `docs/openai` + `add-provider` skill.
 
-**Out of scope for this step:** pricing UI, token counting, side-by-side model comparison.
+**In progress (1.10):** `technologyId` on conversations; technology tags in Zustand (seed + CRUD in
+Settings → Chats); sidebar filter + Grupează modal; reusable `ActionDialog`. TODOs left in code for
+DB fetch, extra validation, and error handling — not implemented yet.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.9) before changing scope.
+**Out of scope for this step:** pricing UI, token counting, side-by-side model comparison, DB-backed
+tags.
+
+Re-read `docs/requirements.md` section 5 (Faza 1.10) before changing scope.
 
 ---
 

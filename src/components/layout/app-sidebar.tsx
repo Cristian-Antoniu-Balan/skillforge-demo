@@ -5,6 +5,8 @@
 import { ChevronUp, MoreHorizontal, Plus } from "lucide-react";
 import { useState } from "react";
 
+import { GroupConversationDialog } from "@/components/chat/group-conversation-dialog";
+import { useChatSession } from "@/components/chat/chat-session-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +16,9 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Sidebar,
   SidebarContent,
@@ -27,13 +31,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
-import { useChatSession } from "@/components/chat/chat-session-context";
 import { cn } from "@/lib/utils";
-import { useAppStore } from "@/store/useAppStore";
+import { sortTechnologies, useAppStore } from "@/store/useAppStore";
+
+const FILTER_ALL = "all";
+const FILTER_UNTAGGED = "untagged";
 
 export function AppSidebar() {
   const profile = useAppStore(state => state.profile);
   const conversations = useAppStore(state => state.conversations);
+  const technologies = useAppStore(state => state.technologies);
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
   const { startNewChat } = useChatSession();
@@ -44,6 +51,8 @@ export function AppSidebar() {
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [tagFilter, setTagFilter] = useState<string>(FILTER_ALL);
+  const [groupingConversationId, setGroupingConversationId] = useState<string | null>(null);
 
   const initials = profile.name
     .split(" ")
@@ -51,6 +60,16 @@ export function AppSidebar() {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const sortedTechnologies = sortTechnologies(technologies);
+
+  const filteredConversations = conversations.filter(conversation => {
+    if (tagFilter === FILTER_ALL) return true;
+    if (tagFilter === FILTER_UNTAGGED) {
+      return conversation.technologyId == null || conversation.technologyId === "";
+    }
+    return conversation.technologyId === tagFilter;
+  });
 
   const handleRename = (id: string) => {
     if (renameValue.trim()) {
@@ -72,10 +91,29 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup className="flex min-h-0 flex-1 flex-col px-0">
           <SidebarGroupLabel className="px-4">Chats and tasks</SidebarGroupLabel>
+          <div className="space-y-1 px-4 pb-2">
+            <Label className="text-xs text-muted-foreground" htmlFor="sidebar-tag-filter">
+              Filtru tehnologie
+            </Label>
+            <Select onValueChange={value => setTagFilter(String(value))} value={tagFilter}>
+              <SelectTrigger className="w-full" id="sidebar-tag-filter" size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={FILTER_ALL}>All</SelectItem>
+                <SelectItem value={FILTER_UNTAGGED}>Fără tag</SelectItem>
+                {sortedTechnologies.map(tech => (
+                  <SelectItem key={tech.id} value={tech.id}>
+                    {tech.tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <SidebarGroupContent className="min-h-0 flex-1 px-2">
-            <ScrollArea className="h-[calc(100vh-12rem)] pr-1">
+            <ScrollArea className="h-[calc(100vh-14rem)] pr-1">
               <SidebarMenu>
-                {conversations.map(conversation => (
+                {filteredConversations.map(conversation => (
                   <SidebarMenuItem key={conversation.id} className="group/item relative">
                     {renamingId === conversation.id ? (
                       <Input
@@ -109,6 +147,9 @@ export function AppSidebar() {
                             <MoreHorizontal className="size-4" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setGroupingConversationId(conversation.id)}>
+                              Grupează
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
                                 setRenamingId(conversation.id);
@@ -151,6 +192,14 @@ export function AppSidebar() {
           <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
         </button>
       </SidebarFooter>
+
+      <GroupConversationDialog
+        conversationId={groupingConversationId}
+        onOpenChange={open => {
+          if (!open) setGroupingConversationId(null);
+        }}
+        open={groupingConversationId !== null}
+      />
     </Sidebar>
   );
 }

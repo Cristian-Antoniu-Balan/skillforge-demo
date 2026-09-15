@@ -14,14 +14,23 @@ import { persist } from "zustand/middleware";
 import type { UIMessage } from "ai";
 
 import { mockProfile } from "@/lib/mock/profile";
+import { DEFAULT_TECHNOLOGIES } from "@/lib/mock/technologies";
 import { DEFAULT_CHAT_MODEL, DEFAULT_PROVIDER_ID, isKnownModel, PROVIDERS } from "@/lib/providers";
-import type { AppStore, Conversation, Message, Profile } from "@/lib/types";
+import type { AppStore, Conversation, DeleteTechnologyResult, Message, Profile, TechnologyTag } from "@/lib/types";
 
 /** Versiunea stării din localStorage — orice schimbare de formă cere increment + migrate. */
-export const APP_STORE_VERSION = 1;
+export const APP_STORE_VERSION = 2;
+
+/** Limita curentă pentru numele unui tag; alte reguli vin ulterior. */
+export const TECHNOLOGY_TAG_MAX_LENGTH = 20;
 
 function generateId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Sortare alfabetică crescătoare pe etichetă — UI și liste derivate. */
+export function sortTechnologies(technologies: TechnologyTag[]): TechnologyTag[] {
+  return [...technologies].sort((a, b) => a.tag.localeCompare(b.tag, "ro", { sensitivity: "base" }));
 }
 
 /** Transformă mesajul vechi (content: string) în UIMessage (parts) — fără ea, refresh-ul crapă în UI. */
@@ -45,7 +54,7 @@ function toUIMessage(message: unknown): UIMessage {
 
 type PersistedSlice = Pick<
   AppStore,
-  "profile" | "selectedProviderId" | "selectedModel" | "conversations" | "activeConversationId"
+  "profile" | "selectedProviderId" | "selectedModel" | "technologies" | "conversations" | "activeConversationId"
 >;
 
 function migratePersistedState(persistedState: unknown, version: number): PersistedSlice {
@@ -59,16 +68,32 @@ function migratePersistedState(persistedState: unknown, version: number): Persis
     }));
   }
 
+  // v1 → v2: tehnologii + technologyId pe conversații.
+  if (version < 2) {
+    // TODO: preluare lista de tehnologii din DB (nu hardcodat).
+    if (!Array.isArray(state.technologies) || state.technologies.length === 0) {
+      state.technologies = DEFAULT_TECHNOLOGIES;
+    }
+    if (Array.isArray(state.conversations)) {
+      state.conversations = state.conversations.map(conversation => ({
+        ...conversation,
+        technologyId: conversation.technologyId ?? null
+      }));
+    }
+  }
+
   return state;
 }
 
 export const useAppStore = create<AppStore>()(
   persist(
-    set => ({
+    (set, get) => ({
       profile: mockProfile,
       // Implicit = primul din registru (Anthropic) — pe creditele lui rulează cursul.
       selectedProviderId: DEFAULT_PROVIDER_ID,
       selectedModel: DEFAULT_CHAT_MODEL,
+      // TODO: preluare lista de tehnologii din DB (nu hardcodat).
+      technologies: DEFAULT_TECHNOLOGIES,
       conversations: [],
       activeConversationId: null,
       isLoading: false,
@@ -91,6 +116,7 @@ export const useAppStore = create<AppStore>()(
           id,
           title: "Conversație nouă",
           messages: [],
+          technologyId: null,
           createdAt: now,
           updatedAt: now
         };
@@ -124,6 +150,36 @@ export const useAppStore = create<AppStore>()(
           )
         })),
 
+      setConversationTechnology: (conversationId, technologyId) =>
+        set(state => ({
+          conversations: state.conversations.map(c =>
+            c.id === conversationId ? { ...c, technologyId, updatedAt: new Date().toISOString() } : c
+          )
+        })),
+
+      addTechnology: tag => {
+        const id = generateId("tech");
+        const entry: TechnologyTag = { id, tag: tag.trim() };
+        set(state => ({ technologies: [...state.technologies, entry] }));
+        return id;
+      },
+
+      updateTechnology: (id, tag) =>
+        set(state => ({
+          technologies: state.technologies.map(t => (t.id === id ? { ...t, tag: tag.trim() } : t))
+        })),
+
+      deleteTechnology: (id): DeleteTechnologyResult => {
+        const inUse = get().conversations.some(c => c.technologyId === id);
+        if (inUse) {
+          return { ok: false, reason: "in_use" };
+        }
+        set(state => ({
+          technologies: state.technologies.filter(t => t.id !== id)
+        }));
+        return { ok: true };
+      },
+
       // Păstrate pe tip pentru compatibilitate UI; generarea e în useChat + /api/chat.
       stopGeneration: () => set({ isTyping: false }),
       simulateLoading: () => {},
@@ -144,6 +200,7 @@ export const useAppStore = create<AppStore>()(
         profile: state.profile,
         selectedProviderId: state.selectedProviderId,
         selectedModel: state.selectedModel,
+        technologies: state.technologies,
         conversations: state.conversations,
         activeConversationId: state.activeConversationId
       }),
@@ -154,6 +211,11 @@ export const useAppStore = create<AppStore>()(
           const fallback = PROVIDERS.find(p => p.id === merged.selectedProviderId) ?? PROVIDERS[0];
           merged.selectedProviderId = fallback.id;
           merged.selectedModel = fallback.defaultModelId;
+        }
+        // Persist fără technologies (sau gol) → seed din mock la încărcare.
+        // TODO: preluare lista de tehnologii din DB (nu hardcodat).
+        if (!Array.isArray(merged.technologies) || merged.technologies.length === 0) {
+          merged.technologies = DEFAULT_TECHNOLOGIES;
         }
         return merged;
       }
