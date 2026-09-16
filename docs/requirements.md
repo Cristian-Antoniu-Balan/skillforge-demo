@@ -293,7 +293,7 @@ Nimic aici nu adaugă „funcționalitate nouă” de produs, dar schimbă perce
 
 ---
 
-#### Faza 1.9 — Al doilea provider (comutator) _(livrată parțial)_
+#### Faza 1.9 — Al doilea provider (comutator) _(livrată)_
 
 Comutator Anthropic ↔ OpenAI lângă caseta de chat. Abstracția se justifică abia la al doilea provider: un provider nou = o intrare în registru, nu if-uri prin UI.
 
@@ -307,9 +307,10 @@ Comutator Anthropic ↔ OpenAI lângă caseta de chat. Abstracția se justifică
 - Documentație: `docs/openai/README.md` + rând index + `OPENAI_API_KEY` în `.env.example`
 - Skill `add-provider` (rețeta pentru al treilea provider)
 
-**Out of scope (rămâne pentru pași ulteriori):**
+**Out of scope (mutat):**
 
-- Prețuri în UI, numărare de tokeni, comparație side-by-side între modele
+- Prețuri în UI / numărare de tokeni → **Faza 1.11**
+- Comparație side-by-side între modele → faze ulterioare
 - Al treilea provider (doar rețeta din skill)
 
 **De discutat la curs:** de ce un registru bate un lanț de `if`-uri (cum arată același cod peste patru providere); fiecare provider are propriul pachet SDK, dar interfața de apel rămâne aceeași; „configurat” e proprietate a serverului, nu a browserului.
@@ -340,6 +341,31 @@ Fiecare conversație din istoric poate fi legată de un tag de tehnologie (`tech
 - Prețuri / tokeni / al treilea provider
 
 **De discutat la curs:** de ce `technologyId` pe conversație (nu o listă de chat-uri pe tag) simplifică filtrul; de ce delete tag e blocat când e în uz (integritate locală înainte de DB).
+
+---
+
+#### Faza 1.11 — Cost vizibil + cache + rate limit _(livrată)_
+
+Costul unui răspuns nu e proporțional cu lungimea întrebării, ci cu lungimea **întregului context** trimis. Măsurarea există înainte de optimizare — altfel se optimizează după intuiție.
+
+**In scope (livrat):**
+
+- Consum citit din `usage` (input/output tokens) la finalul generării — **nu** estimat manual; `undefined` → afișat „—”, niciodată `NaN` sau `0` mincinos
+- Prețuri per model în registrul de providere (`pricingByModel`), USD / 1M tokeni, **cu data verificării** din documentația oficială
+- Formula unică în `src/lib/cost.ts` (tokeni × preț / 1.000.000) — folosită și pe mesaj, și pe totalul conversației
+- Cost + provider + model salvate pe metadatele mesajului assistant (total corect chiar dacă s-a comutat providerul)
+- UI: cost discret sub răspuns (partea de **input** = istoricul retrimis; **output** = răspunsul); total pe conversație în header
+- Cache în memorie (`src/lib/cache.ts`: doar `get`/`set`) — cheie = provider + model + system prompt + hash mesaje; la hit se **redă** textul ca stream și se marchează „din cache”; fără cost nou
+- Rate limit local pe `/api/chat` (cereri/minut) → `429` cu mesaj clar + moment de reîncercare
+- Ce **nu** se cachează: cereri cu `trigger=regenerate-message` („mai încearcă”); profilul e în system prompt, deci doi utilizatori nu împart răspunsuri
+
+**Out of scope:**
+
+- Cache extern (Redis etc.) — ar deveni integrare cu `docs/<serviciu>/README.md`
+- Comparație side-by-side între modele; UI de pricing separat
+- Rate limit distribuit / persistent (contorul e per instanță, se resetează la restart)
+
+**De discutat la curs:** de ce costul crește cu **pătratul** lungimii conversației dacă retrimiți tot istoricul; ce înseamnă pe un chat lung; cele trei pârghii reale — model mai mic, istoric mai scurt, mai puține retrimiteri. Cache-ul aici e protecție la retrimiteri identice, nu reducere de cost (profilul e în cheie → hit rate mic).
 
 ---
 
@@ -384,21 +410,24 @@ Fiecare conversație din istoric poate fi legată de un tag de tehnologie (`tech
 
 ### Exemple concrete
 
-| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                           |
-| -------------------------------------------------------------- | ----------- | --------------------------------------------------------------- |
-| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice    |
-| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare       |
-| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                  |
-| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el        |
-| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid   |
-| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus  |
-| „Răspunde cu titluri, listă, tabel și două blocuri de cod”     | Faza 1.8    | Formatat **în timp ce curge**; cod colorat + buton copiere      |
-| Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi |
-| Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat              |
-| OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge     |
-| Grupează un chat pe „TypeScript”, filtrează lista              | Faza 1.10   | Doar chat-urile cu acel tag; „Fără tag” ascunde grupatele       |
+| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                                     |
+| -------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------- |
+| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice              |
+| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare                 |
+| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                            |
+| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el                  |
+| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid             |
+| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus            |
+| „Răspunde cu titluri, listă, tabel și două blocuri de cod”     | Faza 1.8    | Formatat **în timp ce curge**; cod colorat + buton copiere                |
+| Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi           |
+| Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat                        |
+| OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge               |
+| Grupează un chat pe „TypeScript”, filtrează lista              | Faza 1.10   | Doar chat-urile cu acel tag; „Fără tag” ascunde grupatele                 |
 | Search for „Spring” + filtru tehnologie                        | Faza 1.10   | AND: doar chat-urile cu tag-ul ales care conțin textul; highlight în chat |
-| Șterge un tag folosit de un chat                               | Faza 1.10   | Tag-ul rămâne; mesaj de eroare în modal                         |
+| Șterge un tag folosit de un chat                               | Faza 1.10   | Tag-ul rămâne; mesaj de eroare în modal                                   |
+| Același mesaj de două ori (același profil)                     | Faza 1.11   | Al doilea e marcat „din cache”; nu adaugă cost                            |
+| „Mai încearcă” pe un răspuns                                   | Faza 1.11   | Apelează modelul din nou (nu cache); cost nou pe răspuns                  |
+| Mai multe cereri rapide decât limita pe minut                  | Faza 1.11   | Alertă „Limită de cereri” cu moment de reîncercare, nu eroare tehnică     |
 
 ### Format pentru criterii noi
 
@@ -434,9 +463,20 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ### Costuri provider LLM
 
-- Fiecare provider documentat în `docs/<provider>/README.md`
-- Include: link oficial pricing, estimare orientativă la momentul documentării, variabile env relevante
-- Prețurile se schimbă — documentația indică sursa oficială, nu garantează exactitatea
+Ce se măsoară (Faza 1.11):
+
+| Unde                          | Ce vezi                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| Sub fiecare răspuns assistant | Tokeni input/output + cost USD (sau „—” dacă usage lipsește); pe cache: „din cache · $0” |
+| Header conversație            | Total adunat pe răspunsurile din conversație                                             |
+| Defalcare                     | **input** = contextul/istoricul retrimis; **output** = textul generat                    |
+
+Protecții:
+
+- **Cache** (memorie, `get`/`set`): aceeași întrebare + același profil → fără al doilea apel plătit; „mai încearcă” ocolește cache-ul
+- **Rate limit** local pe `/api/chat`: mesaj clar la `429`, nu stack trace; contor per instanță (nu e securitate)
+
+Prețurile stau în `src/lib/providers.ts` (`pricingByModel`, cu `verifiedAt`) și sunt copiate în `docs/<provider>/README.md` — un singur set de cifre. Surse oficiale: [Anthropic pricing](https://www.anthropic.com/pricing), [OpenAI pricing](https://developers.openai.com/api/docs/pricing). Prețurile se schimbă — la actualizare, citește din docs, nu din memorie.
 
 ### Formatare cod
 
@@ -504,4 +544,4 @@ Profilul (nume, stack, skills, obiectiv) este **dată personală**.
 
 ---
 
-_Ultima actualizare: 2026-09-14 — Faza 1.9 (Al doilea provider: comutator) — livrată parțial (fără cost/comparație)_
+_Ultima actualizare: 2026-09-16 — Faza 1.11 (Cost vizibil + cache + rate limit) — livrată_

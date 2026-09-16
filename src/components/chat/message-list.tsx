@@ -1,12 +1,12 @@
 // Lista de mesaje — key = id (nu index); scroll automat la ultimul mesaj.
-import type { UIMessage } from "ai";
 import { useEffect, useRef } from "react";
 
 import { MessageItem } from "@/components/chat/message-item";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { ChatUIMessage } from "@/lib/cost";
 
 interface MessageListProps {
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   isBusy: boolean;
   status?: "submitted" | "streaming" | "ready" | "error";
   onRegenerate?: (messageId: string) => void;

@@ -1,6 +1,7 @@
 "use client";
 
-// Header minimal — titlu + meniu export. Fără bară de acțiuni peste conversație.
+// Header minimal — titlu + cost total pe conversație + meniu export.
+// Fără bară de acțiuni peste conversație.
 import { ChevronDown, Download } from "lucide-react";
 
 import { useChatSession } from "@/components/chat/chat-session-context";
@@ -11,6 +12,8 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import type { ChatUIMessage } from "@/lib/cost";
+import { formatUsd, sumConversationCostUsd } from "@/lib/cost";
 import { useAppStore } from "@/store/useAppStore";
 
 export function AppHeader() {
@@ -21,6 +24,8 @@ export function AppHeader() {
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const title = activeConversation?.title ?? "SkillForge";
   const canExport = messages.length > 0;
+  // Total din metadatele salvate pe mesaje — aceeași formulă ca pe fiecare răspuns.
+  const conversationCost = sumConversationCostUsd(messages as ChatUIMessage[]);
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
@@ -41,6 +46,14 @@ export function AppHeader() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {conversationCost !== undefined && (
+        <span
+          className="ml-auto text-[11px] text-muted-foreground/80"
+          title="Suma costurilor pe răspunsurile din această conversație"
+        >
+          total {formatUsd(conversationCost)}
+        </span>
+      )}
     </header>
   );
 }

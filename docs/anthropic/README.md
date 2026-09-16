@@ -38,12 +38,21 @@ ANTHROPIC_API_KEY=
 
 ## Cost & limite
 
-| Aspect          | Detaliu                                                                                               |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| Plan            | Credite / billing în Anthropic Console                                                                |
-| Rate limits     | Depind de tier — vezi dashboard                                                                       |
-| Cost orientativ | [Pricing oficial Anthropic](https://www.anthropic.com/pricing) — verifică sursa, prețurile se schimbă |
-| Model folosit   | `claude-haiku-4-5` (rapid / cost redus pentru curs)                                                   |
+| Aspect                  | Detaliu                                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Plan                    | Credite / billing în Anthropic Console                                                                                      |
+| Rate limits (provider)  | Depind de tier — vezi [Anthropic rate limits](https://docs.anthropic.com/en/api/rate-limits); pot returna 429 pe contul tău |
+| Rate limit (SkillForge) | **20 cereri / minut** pe `/api/chat` (protecție locală, per instanță)                                                       |
+| Pricing oficial         | [platform.claude.com — Pricing](https://platform.claude.com/docs/en/about-claude/pricing)                                   |
+
+**Prețuri în registru** (aceleași ca `pricingByModel` în `src/lib/providers.ts`, verificate **2026-09-16**):
+
+| Model                      | Input / 1M tokeni | Output / 1M tokeni |
+| -------------------------- | ----------------- | ------------------ |
+| `claude-haiku-4-5`         | $1.00             | $5.00              |
+| `claude-sonnet-4-20250514` | $3.00             | $15.00             |
+
+Prețurile se schimbă — la actualizare, citește din nou documentația Anthropic și actualizează **și** registrul, **și** acest tabel.
 
 ## Verificare
 

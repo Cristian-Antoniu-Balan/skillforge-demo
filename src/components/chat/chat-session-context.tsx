@@ -10,12 +10,13 @@
 // Concluzie: valori rare cu puțini consumatori → context; stare care se schimbă des și e citită
 // din multe locuri → store. (Context fără selectors re-randează pe orice schimbare a value.)
 import { createContext, useContext } from "react";
-import type { UIMessage } from "ai";
+
+import type { ChatUIMessage } from "@/lib/cost";
 
 export type ExportFormat = "json" | "md";
 
 export interface ChatSessionValue {
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   isBusy: boolean;
   /** Confirmă, apoi creează conversație nouă (arhiva celei vechi rămâne în store). */
   startNewChat: () => void;

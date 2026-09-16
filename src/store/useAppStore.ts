@@ -11,7 +11,7 @@
 // consumatori (temă; sesiunea useChat) — vezi theme-provider.tsx / chat-session-context.tsx.
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { UIMessage } from "ai";
+import type { ChatUIMessage } from "@/lib/cost";
 
 import { mockProfile } from "@/lib/mock/profile";
 import { DEFAULT_TECHNOLOGIES } from "@/lib/mock/technologies";
@@ -34,14 +34,14 @@ export function sortTechnologies(technologies: TechnologyTag[]): TechnologyTag[]
 }
 
 /** Transformă mesajul vechi (content: string) în UIMessage (parts) — fără ea, refresh-ul crapă în UI. */
-function toUIMessage(message: unknown): UIMessage {
+function toUIMessage(message: unknown): ChatUIMessage {
   if (
     typeof message === "object" &&
     message !== null &&
     "parts" in message &&
-    Array.isArray((message as UIMessage).parts)
+    Array.isArray((message as ChatUIMessage).parts)
   ) {
-    return message as UIMessage;
+    return message as ChatUIMessage;
   }
 
   const legacy = message as Partial<Message>;

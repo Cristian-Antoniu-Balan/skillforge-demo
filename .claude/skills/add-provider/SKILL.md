@@ -18,8 +18,10 @@ If you had to edit the composer or the preferences list, the abstraction leaked 
    - Match major version with existing `@ai-sdk/*` packages in `package.json`.
 
 2. **Registry entry** — `src/lib/providers.ts`
-   - Append one object: `id`, `name`, `models`, `defaultModelId`, `envKey`.
+   - Append one object: `id`, `name`, `models`, `defaultModelId`, `envKey`, **`pricingByModel`**.
    - **Model IDs from current vendor docs** — never invent IDs from memory.
+   - **Prices from current vendor pricing docs** — USD per 1M input/output tokens + `verifiedAt` (YYYY-MM-DD).
+     Copy the same numbers into `docs/<provider>/README.md` Cost & limite.
    - Keep Anthropic first (course default). New providers go after existing ones.
    - This file is browser-safe: **no** `process.env`, **no** API keys, **no** SDK imports.
 

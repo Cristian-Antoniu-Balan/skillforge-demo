@@ -46,15 +46,22 @@ Pe Vercel: Project → Settings → Environment Variables → `OPENAI_API_KEY` p
 
 ## Cost & limite
 
-| Aspect          | Detaliu                                                                                                               |
-| --------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Plan            | Pay-as-you-go / credite în OpenAI Platform                                                                            |
-| Rate limits     | Depind de tier — vezi dashboard                                                                                       |
-| Cost orientativ | [Pricing oficial OpenAI](https://openai.com/api/pricing/) — verifică sursa, prețurile se schimbă                      |
-| Modele în app   | `gpt-5.6-luna` (implicit, cost-sensitiv), `gpt-5.6-terra` (echilibru) — id-uri din docs OpenAI, verificate 2026-09-14 |
+| Aspect                  | Detaliu                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| Plan                    | Pay-as-you-go / credite în OpenAI Platform                                               |
+| Rate limits (provider)  | Depind de tier — vezi dashboard; pot returna 429 pe contul tău                           |
+| Rate limit (SkillForge) | **20 cereri / minut** pe `/api/chat` (protecție locală, per instanță)                    |
+| Pricing oficial         | [developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing) |
 
-Prețurile și id-urile de modele se schimbă — la actualizare, citește din nou
-[platform.openai.com/docs/models](https://platform.openai.com/docs/models), nu din memorie.
+**Prețuri în registru** (aceleași ca `pricingByModel` în `src/lib/providers.ts`, verificate **2026-09-16**):
+
+| Model           | Input / 1M tokeni | Output / 1M tokeni |
+| --------------- | ----------------- | ------------------ |
+| `gpt-4o-mini`   | $0.15             | $0.60              |
+| `gpt-5.6-luna`  | $0.20             | $1.20              |
+| `gpt-5.6-terra` | $2.00             | $12.00             |
+
+Modelele din app: `gpt-4o-mini` (implicit, cost redus), `gpt-5.6-luna`, `gpt-5.6-terra`. Prețurile și id-urile se schimbă — la actualizare, citește din nou [docs/models](https://platform.openai.com/docs/models) + pricing, apoi actualizează **și** registrul, **și** acest tabel.
 
 ## Verificare
 

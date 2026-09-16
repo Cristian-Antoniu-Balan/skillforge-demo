@@ -1,6 +1,6 @@
 // Tipuri partajate — un singur loc ca mock-ul, store-ul și UI-ul să vorbească aceeași limbă.
 // La integrarea LLM, înlocuim doar sursa datelor, nu structura.
-import type { UIMessage } from "ai";
+import type { ChatUIMessage } from "@/lib/cost";
 
 export type SkillLevel = "începător" | "intermediar" | "avansat";
 
@@ -37,7 +37,7 @@ export interface Conversation {
   id: string;
   title: string;
   /** Arhivă: același format ca useChat, ca re-inițializarea să nu convertească la fiecare deschidere. */
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   /** Id tehnologie sub care e grupat chat-ul; null/undefined = negrupat. */
   technologyId?: string | null;
   createdAt: string;
@@ -77,7 +77,7 @@ export interface AppStore {
   renameConversation: (id: string, title: string) => void;
   deleteConversation: (id: string) => void;
   /** Scrie în arhivă mesajele complete — apelat la final de stream, nu per token. */
-  setConversationMessages: (id: string, messages: UIMessage[]) => void;
+  setConversationMessages: (id: string, messages: ChatUIMessage[]) => void;
   setConversationTechnology: (conversationId: string, technologyId: string | null) => void;
   addTechnology: (tag: string) => string;
   updateTechnology: (id: string, tag: string) => void;

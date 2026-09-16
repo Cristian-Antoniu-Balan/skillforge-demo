@@ -1,9 +1,8 @@
 // Conversații inventate — înlocuite dintr-o singură atingere când vine backend-ul / LLM-ul.
-import type { UIMessage } from "ai";
-
+import type { ChatUIMessage } from "@/lib/cost";
 import type { Conversation } from "@/lib/types";
 
-function textMessage(id: string, role: UIMessage["role"], text: string): UIMessage {
+function textMessage(id: string, role: ChatUIMessage["role"], text: string): ChatUIMessage {
   return { id, role, parts: [{ type: "text", text }] };
 }
 

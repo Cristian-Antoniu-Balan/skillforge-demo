@@ -70,19 +70,20 @@ is lost on reinstall, new machine, or deploy.
 
 ## Technical stack
 
-| Component       | Technology                                                            | From phase |
-| --------------- | --------------------------------------------------------------------- | ---------- |
-| Web framework   | Next.js 16 (App Router)                                               | 1.1        |
-| Language        | TypeScript                                                            | 1.1        |
-| Styling         | Tailwind CSS v4 + shadcn/ui                                           | 1.1        |
-| Formatting      | Prettier + prettier-plugin-tailwindcss                                | 1.1        |
-| Client state    | Zustand + persist (localStorage); theme on Context                    | 1.2 / 1.7  |
-| Chat markdown   | `react-markdown` + `remark-gfm` + selective `lowlight`/`highlight.js` | 1.8        |
-| LLM providers   | Registry (`providers.ts`) + server factory (`providers.server.ts`)    | 1.9        |
-| LLM integration | Vercel AI SDK                                                         | 1.3        |
-| LLM calls       | Server-side only                                                      | 1.3        |
-| Deploy          | Vercel (Preview + Production)                                         | 1.4        |
-| MVP users       | Single-user (no auth)                                                 | 1–2        |
+| Component       | Technology                                                                   | From phase |
+| --------------- | ---------------------------------------------------------------------------- | ---------- |
+| Web framework   | Next.js 16 (App Router)                                                      | 1.1        |
+| Language        | TypeScript                                                                   | 1.1        |
+| Styling         | Tailwind CSS v4 + shadcn/ui                                                  | 1.1        |
+| Formatting      | Prettier + prettier-plugin-tailwindcss                                       | 1.1        |
+| Client state    | Zustand + persist (localStorage); theme on Context                           | 1.2 / 1.7  |
+| Chat markdown   | `react-markdown` + `remark-gfm` + selective `lowlight`/`highlight.js`        | 1.8        |
+| LLM providers   | Registry (`providers.ts` + pricing) + server factory (`providers.server.ts`) | 1.9 / 1.11 |
+| Cost / cache    | `cost.ts` + in-memory `cache.ts` + rate limit on `/api/chat`                 | 1.11       |
+| LLM integration | Vercel AI SDK                                                                | 1.3        |
+| LLM calls       | Server-side only                                                             | 1.3        |
+| Deploy          | Vercel (Preview + Production)                                                | 1.4        |
+| MVP users       | Single-user (no auth)                                                        | 1–2        |
 
 ### Security
 
@@ -97,6 +98,13 @@ is lost on reinstall, new machine, or deploy.
   API keys, or provider SDK imports there. Keys and SDK instantiation live only in
   `src/lib/providers.server.ts`. **`getModel` is the only place** that constructs a provider SDK instance;
   UI and `/api/chat` must not branch on `if (provider === …)`.
+- **Cost formula has one home:** `src/lib/cost.ts` (tokens × price / 1_000_000). Message UI and conversation
+  totals must call the same helpers — never duplicate the formula.
+- **Prices live in the provider registry** (`pricingByModel`), with a **`verifiedAt` date** from official docs.
+  Keep `docs/<provider>/README.md` Cost & limite in sync with the same numbers.
+- **Cache only via `src/lib/cache.ts`** (`get` / `set`). Cache key must include everything that affects the
+  reply — **including the system prompt** (profile). Skipping the prompt would leak one user's answer to
+  another. Regenerate (`trigger=regenerate-message`) must skip the cache.
 
 ### Message transforms and chat UI
 
@@ -135,21 +143,24 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.10 (chat grouping by technology) — in progress
+## Current phase: 1.11 (cost visibility + cache + rate limit) — shipped
 
 **Shipped (1.9):** provider registry + `providers.server.ts`; OpenAI as second provider; composer
 model switcher; `docs/openai` + `add-provider` skill.
 
+**Shipped (1.11):** usage → cost on assistant messages; prices in registry with `verifiedAt`;
+`src/lib/cost.ts`; in-memory cache (`src/lib/cache.ts`) with stream replay + „din cache” marker;
+local rate limit on `/api/chat` with clear 429 UI.
+
 **In progress (1.10):** `technologyId` on conversations; technology tags in Zustand (seed + CRUD in
-Settings → Chats); sidebar technology filter + **Search for** (debounced regex on conversation
-content, AND with tag filter, highlight in active chat) + Grupează modal; reusable `ActionDialog`.
+Settings → Chats); sidebar technology filter + **Search for** + Grupează modal; reusable `ActionDialog`.
 TODOs left in code for DB fetch, Search-for DB filter, input validation, and error handling — not
 implemented yet.
 
-**Out of scope for this step:** pricing UI, token counting, side-by-side model comparison, DB-backed
+**Out of scope for this step:** side-by-side model comparison; external/distributed cache; DB-backed
 tags / search.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.10) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 1.11 / 1.10) before changing scope.
 
 ---
 

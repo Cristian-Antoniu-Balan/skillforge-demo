@@ -8,16 +8,18 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Markdown } from "@/components/chat/markdown";
+import { MessageCost } from "@/components/chat/message-cost";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { ChatMessageMetadata } from "@/lib/cost";
 import { getMessageText, isClipboardAvailable } from "@/lib/message-utils";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 
 interface MessageItemProps {
-  message: UIMessage;
+  message: UIMessage<ChatMessageMetadata>;
   /** Doar pe ultimul răspuns assistant — înlocuire evidentă, nu al doilea bubble. */
   showRegenerate?: boolean;
   isBusy?: boolean;
@@ -192,6 +194,7 @@ export function MessageItem({
             </div>
           )}
         </div>
+        {!isUser && !isEditing && <MessageCost metadata={message.metadata} />}
       </div>
     </div>
   );

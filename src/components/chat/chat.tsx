@@ -5,7 +5,7 @@
 // key={conversationId} remontează hook-ul cu mesajele din arhivă — schimbarea id-ului
 // activ singură nu-i resetează lista internă (ai vedea discuția precedentă).
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ import { ChatSessionProvider, type ChatSessionValue, type ExportFormat } from "@
 import { EmptyState } from "@/components/chat/empty-state";
 import { MessageList } from "@/components/chat/message-list";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { ChatUIMessage } from "@/lib/cost";
 import {
   buildExportFilename,
   buildExportPayload,
@@ -24,7 +25,7 @@ import {
 import { useAppStore } from "@/store/useAppStore";
 
 /** Referință stabilă — `?? []` într-un selector creează un array nou la fiecare apel → re-render infinit. */
-const EMPTY_MESSAGES: UIMessage[] = [];
+const EMPTY_MESSAGES: ChatUIMessage[] = [];
 
 function titleFromMessage(content: string) {
   const trimmed = content.trim();
@@ -42,7 +43,7 @@ function formatChatError(error: Error) {
 }
 
 interface ChatViewValue {
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   isBusy: boolean;
   status: "submitted" | "streaming" | "ready" | "error";
   error: Error | undefined;
@@ -60,7 +61,7 @@ const ChatViewContext = createContext<ChatViewValue | null>(null);
 
 interface ChatSessionInnerProps {
   activeConversationId: string | null;
-  initialMessages: UIMessage[];
+  initialMessages: ChatUIMessage[];
   /** În afara `key` — altfel se pierde la remontare când createConversation schimbă id-ul. */
   pendingTextRef: RefObject<string | null>;
   children: React.ReactNode;
@@ -100,7 +101,7 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
     []
   );
 
-  const { messages, sendMessage, status, stop, error, clearError, setMessages, regenerate } = useChat({
+  const { messages, sendMessage, status, stop, error, clearError, setMessages, regenerate } = useChat<ChatUIMessage>({
     id: activeConversationId ?? "new",
     messages: initialMessages,
     transport,
@@ -290,13 +291,16 @@ export function Chat() {
   const showEmpty = messages.length === 0 && !isBusy;
   const errorText = error ? formatChatError(error) : null;
   const isUnconfiguredProvider = errorText?.startsWith("Provider neconfigurat") ?? false;
+  const isRateLimited = errorText?.includes("limita de") ?? false;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {errorText && (
         <div className="px-4 pt-4">
           <Alert variant="destructive">
-            <AlertTitle>{isUnconfiguredProvider ? "Provider neconfigurat" : "Eroare"}</AlertTitle>
+            <AlertTitle>
+              {isUnconfiguredProvider ? "Provider neconfigurat" : isRateLimited ? "Limită de cereri" : "Eroare"}
+            </AlertTitle>
             <AlertDescription className="flex items-center justify-between gap-4">
               <span>{errorText}</span>
               <button className="text-sm underline" onClick={() => clearError()} type="button">
