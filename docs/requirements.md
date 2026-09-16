@@ -15,7 +15,7 @@ Nu este un tab de chat generic. Este o aplicație web online, construită modula
 
 - Stack: Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui + Vercel AI SDK (la integrarea agentului)
 - Nume proiect npm: `skill-forge`; alias import: `@/*`; folder sursă: `src/`
-- MVP: single-user (un singur profil); autentificare și multi-user în faze ulterioare
+- MVP: un profil local per browser; autentificare OAuth (cine ești) din Faza 1.12 — fără proprietar pe date încă (persistență ulterior)
 
 ---
 
@@ -369,11 +369,43 @@ Costul unui răspuns nu e proporțional cu lungimea întrebării, ci cu lungimea
 
 ---
 
+#### Faza 1.12 — Autentificare (cine ești) _(livrată) parțial_
+
+Primul pas în care aplicația știe cine o folosește. Deliberat **fără bază de date**: nu se salvează nimic despre utilizator — datele nu au încă proprietar. Conversațiile rămân în stocarea locală.
+
+**In scope (livrat):**
+
+- Auth.js (NextAuth v5) în `src/lib/auth.ts` + catch-all `src/app/api/auth/[...nextauth]/route.ts`
+- Furnizor activ: **GitHub**; **Google** în registrul UI (siglă reală, id corect), inactiv („Urmează”)
+- Fără variabile de auth: aplicația pornește neautentificată (ca înainte); în **producție** fără config, `POST /api/chat` e **închis** (503), nu deschis
+- Cu auth configurat: fără sesiune, `/api/chat` → **401** înainte de orice apel la model; `console.info` doar cu `userId`
+- UI: buton login → fereastră de alegere; după login — nume, email, poză, ieșire; restul app (temă, profil local, Despre) rămâne folosibil
+- Emailul contului în „Profilul tău” ca câmp **readonly** (nu e în tipul Profile, nu în localStorage, nu în system prompt)
+- Anulare la furnizor (`access_denied`) tratată pe ruta noastră — mesaj în română în app, o linie în terminal
+- Documentație `docs/nextauth/README.md` + skill `add-integration`
+
+**Rămas pentru persistență (de aceea „parțial”):**
+
+- Proprietar pe conversații / profil (tabel, coloană user id)
+- Datele nu mai sunt „ale browserului” — doi useri pe același PC nu mai împart chat-urile
+- Preferințe salvate pe cont
+
+**Out of scope acum:**
+
+- Bază de date / adapter Auth.js
+- Activarea Google (doar pregătire UI + id)
+- Autorizare pe roluri
+
+**De discutat la curs:** autentificare vs autorizare; de ce verificarea pe server nu e opțională; costul unei rute de model publice; de ce jurnalul de server e tot un loc cu date personale; de ce o librărie care „înghite” motivul unei erori costă mai mult timp.
+
+---
+
 ### Faza 2 — Memorie și progres
 
 **In scope:**
 
 - Persistență conversații pe **server** (nu doar `localStorage`) — inclusiv recuperare după refresh mid-stream
+- **Proprietar pe date** (legătura cont ↔ conversații/profil) — completează Faza 1.12
 - Actualizare profil/progres din conversație (ex. „am terminat modulul de streaming")
 - Plan de învățare structurat (pași, termene) stocat și injectat în system prompt
 - Istoric conversații vizibil în UI _(lista locală există din 1.2 / 1.6; aici se leagă de backend)_
@@ -383,7 +415,6 @@ Costul unui răspuns nu e proporțional cu lungimea întrebării, ci cu lungimea
 
 - Tool calling / unelte agent
 - Comparare provideri
-- Autentificare
 - Deploy producție _(mutat în Faza 1.4)_
 
 ---
@@ -394,13 +425,13 @@ Costul unui răspuns nu e proporțional cu lungimea întrebării, ci cu lungimea
 
 - Tool calling: agentul invocă singur funcții (caută în notițe, actualizează plan, marchează progres)
 - Comparație cost/calitate între providere (comutatorul de bază e în Faza 1.9)
-- Autentificare (dacă e nevoie pentru multi-device)
 - Monitorizare (logs, erori, cost tracking)
 - Fiecare integrare externă nouă → `docs/<integrare>/README.md`
 
 **Out of scope:**
 
 - Deploy producție _(mutat în Faza 1.4)_
+- Autentificare de bază _(livrată parțial în 1.12)_
 - Funcționalități sociale (profil public, sharing)
 - Marketplace de planuri
 
@@ -428,6 +459,9 @@ Costul unui răspuns nu e proporțional cu lungimea întrebării, ci cu lungimea
 | Același mesaj de două ori (același profil)                     | Faza 1.11   | Al doilea e marcat „din cache”; nu adaugă cost                            |
 | „Mai încearcă” pe un răspuns                                   | Faza 1.11   | Apelează modelul din nou (nu cache); cost nou pe răspuns                  |
 | Mai multe cereri rapide decât limita pe minut                  | Faza 1.11   | Alertă „Limită de cereri” cu moment de reîncercare, nu eroare tehnică     |
+| Deschide app publică și trimite mesaj fără login               | Faza 1.12   | `/api/chat` → 401; UI rămâne folosibilă (temă, profil local)              |
+| Conectare GitHub + anulare la „Cancel”                         | Faza 1.12   | Cont real în sidebar; la Cancel — mesaj RO în app, fără pagina Auth.js    |
+| Doi useri pe același browser                                   | Faza 1.12   | **Limitare:** văd aceleași conversații locale (rezolvat la persistență)   |
 
 ### Format pentru criterii noi
 

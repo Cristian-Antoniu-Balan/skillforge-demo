@@ -9,6 +9,7 @@ import {
   type UIMessage
 } from "ai";
 
+import { auth, isAuthConfigured, mustRequireAuthInProduction } from "@/lib/auth";
 import { chatResponseCache } from "@/lib/cache";
 import { buildChatCacheKey } from "@/lib/chat-cache-key";
 import { calculateMessageCost, type ChatMessageMetadata } from "@/lib/cost";
@@ -76,6 +77,27 @@ function cachedTextToResponse(text: string, metadata: ChatMessageMetadata) {
 }
 
 export async function POST(req: Request) {
+  // Verificarea care contează: pe server, înainte de orice apel la model.
+  // Un buton ascuns în UI nu protejează — ruta rămâne publică altfel.
+  if (isAuthConfigured()) {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return Response.json({ error: "Trebuie să te autentifici ca să trimiți mesaje către model." }, { status: 401 });
+    }
+    // Minim în jurnal: doar id — nici email, nici nume, nici token (jurnalul e text păstrat de altcineva).
+    console.info(`[api/chat] userId=${session.user.id}`);
+  } else if (mustRequireAuthInProduction()) {
+    // Producție fără AUTH_*: închidem ruta — altfel cheia de model e cheltuibilă de oricine are link-ul.
+    return Response.json(
+      {
+        error:
+          "Autentificarea nu e configurată pe acest mediu de producție. Chat-ul e dezactivat până la setarea variabilelor."
+      },
+      { status: 503 }
+    );
+  }
+  // Dev fără auth: lăsăm deschis — toată grupa poate rula proiectul fără OAuth.
+
   // Limită locală înainte de orice lucru scump — mesaj clar, nu eroare tehnică.
   const rate = checkRateLimit(rateLimitKeyFromRequest(req));
   if (!rate.allowed && rate.retryAtMs !== undefined) {

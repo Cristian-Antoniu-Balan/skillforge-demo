@@ -5,6 +5,8 @@
 import { ChevronUp, MoreHorizontal, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { useAuthConfigured } from "@/components/auth/auth-providers";
+import { SidebarAuthUser } from "@/components/auth/sidebar-auth-user";
 import { GroupConversationDialog } from "@/components/chat/group-conversation-dialog";
 import { useChatSession } from "@/components/chat/chat-session-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -40,8 +42,47 @@ const FILTER_ALL = "all";
 const FILTER_UNTAGGED = "untagged";
 const SEARCH_DEBOUNCE_MS = 300;
 
-export function AppSidebar() {
+/** Footer fără Auth configurat — doar profilul local (fără login/logout). */
+function SidebarLocalUser() {
   const profile = useAppStore(state => state.profile);
+  const setSettingsOpen = useAppStore(state => state.setSettingsOpen);
+  const setSettingsTab = useAppStore(state => state.setSettingsTab);
+
+  const initials = profile.name
+    .split(" ")
+    .map(part => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-sidebar-accent">
+        <Avatar className="size-8">
+          <AvatarFallback className="bg-primary text-xs text-primary-foreground">{initials}</AvatarFallback>
+        </Avatar>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{profile.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">Profil local</span>
+        </span>
+        <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56" side="top">
+        <DropdownMenuItem
+          onClick={() => {
+            setSettingsTab("profile");
+            setSettingsOpen(true);
+          }}
+        >
+          Profilul tău
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function AppSidebar() {
+  const authConfigured = useAuthConfigured();
   const conversations = useAppStore(state => state.conversations);
   const technologies = useAppStore(state => state.technologies);
   const activeConversationId = useAppStore(state => state.activeConversationId);
@@ -51,8 +92,6 @@ export function AppSidebar() {
   const { startNewChat } = useChatSession();
   const renameConversation = useAppStore(state => state.renameConversation);
   const deleteConversation = useAppStore(state => state.deleteConversation);
-  const setSettingsOpen = useAppStore(state => state.setSettingsOpen);
-  const setSettingsTab = useAppStore(state => state.setSettingsTab);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -66,15 +105,7 @@ export function AppSidebar() {
     setConversationSearchQuery(settledSearchQuery);
   }, [settledSearchQuery, setConversationSearchQuery]);
 
-  const initials = profile.name
-    .split(" ")
-    .map(part => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   const sortedTechnologies = sortTechnologies(technologies);
-  console.log(conversations);
   // Filtre pe listă: tehnologie AND Search for (când e settled).
   const filteredConversations = conversations.filter(conversation => {
     const matchesTag = (() => {
@@ -229,20 +260,8 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2">
-        <button
-          className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-sidebar-accent"
-          onClick={() => {
-            setSettingsTab("profile");
-            setSettingsOpen(true);
-          }}
-          type="button"
-        >
-          <Avatar className="size-8">
-            <AvatarFallback className="bg-primary text-xs text-primary-foreground">{initials}</AvatarFallback>
-          </Avatar>
-          <span className="flex-1 truncate text-sm font-medium">{profile.name}</span>
-          <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
-        </button>
+        {/* useSession doar pe ramura cu SessionProvider — componente separate, nu hook condiționat. */}
+        {authConfigured ? <SidebarAuthUser /> : <SidebarLocalUser />}
       </SidebarFooter>
 
       <GroupConversationDialog

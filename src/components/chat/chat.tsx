@@ -109,7 +109,14 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
       // O singură scriere la final: persist e sincron pe localStorage; per token = UI blocat.
       // Compromis: refresh în mijlocul stream-ului pierde răspunsul curent (până la persistența pe server).
       if (!activeConversationId) return;
-      setConversationMessages(activeConversationId, finishedMessages);
+      // Clonăm: finishedMessages e aceeași referință ca chat.messages — partajarea cu Zustand
+      // declanșa Maximum update depth la status→ready (store re-randează cu array-ul live).
+      const archived = finishedMessages.map(message => ({
+        ...message,
+        parts: message.parts.map(part => ({ ...part })),
+        ...(message.metadata !== undefined ? { metadata: { ...message.metadata } } : {})
+      }));
+      setConversationMessages(activeConversationId, archived);
     }
   });
 
@@ -292,6 +299,8 @@ export function Chat() {
   const errorText = error ? formatChatError(error) : null;
   const isUnconfiguredProvider = errorText?.startsWith("Provider neconfigurat") ?? false;
   const isRateLimited = errorText?.includes("limita de") ?? false;
+  const isAuthRequired =
+    errorText?.includes("autentifici") === true || errorText?.includes("Autentificarea nu e configurată") === true;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -299,7 +308,13 @@ export function Chat() {
         <div className="px-4 pt-4">
           <Alert variant="destructive">
             <AlertTitle>
-              {isUnconfiguredProvider ? "Provider neconfigurat" : isRateLimited ? "Limită de cereri" : "Eroare"}
+              {isUnconfiguredProvider
+                ? "Provider neconfigurat"
+                : isRateLimited
+                  ? "Limită de cereri"
+                  : isAuthRequired
+                    ? "Autentificare necesară"
+                    : "Eroare"}
             </AlertTitle>
             <AlertDescription className="flex items-center justify-between gap-4">
               <span>{errorText}</span>

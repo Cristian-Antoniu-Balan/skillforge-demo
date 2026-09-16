@@ -25,6 +25,7 @@ Fiecare serviciu terț (provider LLM, DB, auth, deploy, monitorizare) are propri
 | Anthropic (Claude)                   | 1.3        | [`docs/anthropic/README.md`](anthropic/README.md) |
 | Vercel (deploy Preview + Production) | 1.4        | [`docs/vercel/README.md`](vercel/README.md)       |
 | OpenAI (GPT)                         | 1.9        | [`docs/openai/README.md`](openai/README.md)       |
+| Auth.js / NextAuth (GitHub OAuth)    | 1.12       | [`docs/nextauth/README.md`](nextauth/README.md)   |
 
 ## Șablon
 

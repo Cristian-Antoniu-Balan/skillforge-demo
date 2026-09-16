@@ -4,6 +4,8 @@
 // Skills ca textarea „nume: nivel” ca editarea să fie rapidă fără UI complex.
 import { useEffect, useState } from "react";
 
+import { AccountEmailField } from "@/components/auth/account-email-field";
+import { useAuthConfigured } from "@/components/auth/auth-providers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,7 @@ import type { Profile } from "@/lib/types";
 import { skillsToText, textToSkills, useAppStore } from "@/store/useAppStore";
 
 export function ProfileForm() {
+  const authConfigured = useAuthConfigured();
   const profile = useAppStore(state => state.profile);
   const setProfile = useAppStore(state => state.setProfile);
 
@@ -40,6 +43,9 @@ export function ProfileForm() {
       </div>
 
       <div className="space-y-4">
+        {/* Emailul contului: doar dacă auth e configurat; componentă separată pentru useSession. */}
+        {authConfigured ? <AccountEmailField /> : null}
+
         <div className="grid gap-2">
           <Label htmlFor="name">Nume</Label>
           <Input id="name" onChange={event => setDraft({ ...draft, name: event.target.value })} value={draft.name} />
