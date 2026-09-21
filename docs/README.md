@@ -26,6 +26,7 @@ Fiecare serviciu terț (provider LLM, DB, auth, deploy, monitorizare) are propri
 | Vercel (deploy Preview + Production) | 1.4        | [`docs/vercel/README.md`](vercel/README.md)       |
 | OpenAI (GPT)                         | 1.9        | [`docs/openai/README.md`](openai/README.md)       |
 | Auth.js / NextAuth (GitHub OAuth)    | 1.12       | [`docs/nextauth/README.md`](nextauth/README.md)   |
+| Supabase (Postgres — persistență)    | 2          | [`docs/supabase/README.md`](supabase/README.md)   |
 
 ## Șablon
 

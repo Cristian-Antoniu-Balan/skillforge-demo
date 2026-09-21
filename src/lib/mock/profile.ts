@@ -12,5 +12,6 @@ export const mockProfile: Profile = {
     { name: "TypeScript", level: "începător" },
     { name: "React", level: "începător" }
   ],
-  objective: "AI Engineer — LLM integration, RAG, vector databases"
+  objective: "AI Engineer — LLM integration, RAG, vector databases",
+  responseStyle: "echilibrat"
 };

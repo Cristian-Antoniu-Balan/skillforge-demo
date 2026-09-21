@@ -83,11 +83,13 @@ is lost on reinstall, new machine, or deploy.
 | Chat markdown   | `react-markdown` + `remark-gfm` + selective `lowlight`/`highlight.js`        | 1.8        |
 | LLM providers   | Registry (`providers.ts` + pricing) + server factory (`providers.server.ts`) | 1.9 / 1.11 |
 | Cost / cache    | `cost.ts` + in-memory `cache.ts` + rate limit on `/api/chat`                 | 1.11       |
-| Auth            | Auth.js (NextAuth v5) — GitHub OAuth; optional env; no DB                    | 1.12       |
+| Auth            | Auth.js (NextAuth v5) — GitHub OAuth; optional env; identity → `profiles.id` | 1.12 / 2   |
+| Persistence     | Supabase Postgres (gated); fallback localStorage; no browser→DB migration    | 2          |
+| Memory          | Last N messages + saved conversation summary (refresh every N)               | 2          |
 | LLM integration | Vercel AI SDK                                                                | 1.3        |
 | LLM calls       | Server-side only                                                             | 1.3        |
 | Deploy          | Vercel (Preview + Production)                                                | 1.4        |
-| MVP users       | OAuth identity (1.12); data ownership deferred to persistence                | 1.12       |
+| MVP users       | OAuth → `profiles.id` owner; multi-provider link on confirmed email          | 1.12 / 2   |
 
 ### Security
 
@@ -115,11 +117,30 @@ is lost on reinstall, new machine, or deploy.
 - **Auth config is optional in dev, closed in production:** without `AUTH_*` env vars the app still boots
   (course-friendly). In **production** without those vars, the paid route stays **closed** (not open) —
   document the decision next to the check in code.
-- **Provider identity ≠ profile:** name / email / image from OAuth are display-only. Do **not** put them in
-  the `Profile` type, localStorage, or the system prompt. Profile email field is readonly UI, not stored data.
+- **Provider identity ≠ profile:** name / email / image from OAuth are display-only for the form.
+  Email may be **stored** on `profiles.email` for account linking, but must **not** enter the `Profile`
+  type or the system prompt. Profile email field is readonly UI.
 - **`useSession` only under `SessionProvider`:** the provider mounts only when auth is configured. Branch via
   **separate components** (do not call the hook conditionally). Whether auth is configured is known on the
   server and flows down through **auth config context**, not props on the settings section registry.
+
+### Supabase / persistence
+
+- **All DB access** goes through `src/lib/supabase/` (operation helpers). Components and UI must not build
+  queries.
+- **Gated client:** `getSupabase()` returns `null` when env vars are missing — app keeps localStorage;
+  build/start must not crash. Persistence also requires auth configured (`isPersistenceConfigured`).
+- **Service role only, server-only:** one helper; no browser Supabase client. Never put the service key in a
+  `NEXT_PUBLIC_*` variable or logs. The anon key is documented but unused by the app (RLS has no policies
+  on purpose — browser must not read tables).
+- **Every read/write filters by owner** (`profiles.id` from `auth()` on the server). Service role bypasses
+  RLS — the query filter is the real protection. A missing filter leaks everyone’s data with no error.
+- **Owner is `profiles.id`**, never the OAuth provider subject. New identities link to an existing profile
+  **only** on provider-**confirmed** email; missing email is a normal branch (new profile + UI warning).
+- **No localStorage → DB migration.** Local chats have no owner; importing would hand them to whoever
+  signs in first. Schema changes = new migration files, not edits to an already-applied `schema.sql`.
+- **Memory ≠ full history to the model:** send last N + saved summary; refresh summary only after the
+  stream and only when history grew by another N. UI still shows the full conversation.
 
 ### Message transforms and chat UI
 
@@ -158,7 +179,7 @@ is lost on reinstall, new machine, or deploy.
 
 ---
 
-## Current phase: 1.12 (auth — who you are) — shipped partial
+## Current phase: 2 (persistence + memory) — shipped partial
 
 **Shipped (1.9):** provider registry + `providers.server.ts`; OpenAI as second provider; composer
 model switcher; `docs/openai` + `add-provider` skill.
@@ -167,19 +188,24 @@ model switcher; `docs/openai` + `add-provider` skill.
 `src/lib/cost.ts`; in-memory cache (`src/lib/cache.ts`) with stream replay + „din cache” marker;
 local rate limit on `/api/chat` with clear 429 UI.
 
-**Shipped partial (1.12):** Auth.js + GitHub; login chooser (Google listed, disabled); `/api/chat`
+**Shipped (1.12):** Auth.js + GitHub; login chooser (Google listed, disabled); `/api/chat`
 gated (401 / prod-closed without config); account email readonly in profile; `docs/nextauth` +
-`add-integration` skill. **Not yet:** data ownership / DB — conversations stay in localStorage.
+`add-integration` skill. **Completed by phase 2:** data ownership via `profiles.id`.
+
+**Shipped partial (2):** Supabase schema + gated server client; identities + confirmed-email link;
+conversations/messages/profile APIs; sliding-window memory + saved summary; `docs/supabase`.
+**Not yet:** learning plan structured persistence; mid-stream server recovery; self-service delete API;
+progress updates from chat.
 
 **In progress (1.10):** `technologyId` on conversations; technology tags in Zustand (seed + CRUD in
 Settings → Chats); sidebar technology filter + **Search for** + Grupează modal; reusable `ActionDialog`.
 TODOs left in code for DB fetch, Search-for DB filter, input validation, and error handling — not
 implemented yet.
 
-**Out of scope for this step:** DB adapter; Google activation; side-by-side model comparison;
-external/distributed cache.
+**Out of scope for this step:** Google activation; side-by-side model comparison;
+external/distributed cache; Auth.js database adapter on Supabase Auth tables.
 
-Re-read `docs/requirements.md` section 5 (Faza 1.12 / 1.11 / 1.10) before changing scope.
+Re-read `docs/requirements.md` section 5 (Faza 2 / 1.12 / 1.11 / 1.10) before changing scope.
 
 ---
 

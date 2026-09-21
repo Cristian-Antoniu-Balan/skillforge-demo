@@ -6,9 +6,8 @@ Auth.js autentifică utilizatorul prin OAuth (GitHub acum; Google pregătit în 
 Aplicația **știe cine e** (sesiune JWT, fără bază de date) și **închide** `POST /api/chat`
 fără sesiune — ca oricine cu link-ul public să nu poată cheltui cheia de model.
 
-**Limitare cunoscută (pasul acesta):** conversațiile rămân în `localStorage` al browserului,
-nu ale contului. Doi utilizatori pe același calculator văd aceleași chat-uri. Proprietarul
-datelor vine la pasul de persistență.
+**Limitare cunoscută (fără Supabase):** conversațiile rămân în `localStorage` al browserului.
+Cu Supabase configurat (Faza 2), datele sunt ale contului — vezi [`docs/supabase/README.md`](../supabase/README.md).
 
 ## Cont & chei
 

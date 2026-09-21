@@ -71,6 +71,7 @@ export function serializeExportMarkdown(payload: ExportPayload): string {
     `- Nume: ${payload.profile.name}`,
     `- Stack: ${payload.profile.stack}`,
     `- Obiectiv: ${payload.profile.objective}`,
+    `- Stil răspunsuri: ${payload.profile.responseStyle ?? "echilibrat"}`,
     "",
     "### Skills",
     "",

@@ -15,7 +15,8 @@ Nu este un tab de chat generic. Este o aplicație web online, construită modula
 
 - Stack: Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui + Vercel AI SDK (la integrarea agentului)
 - Nume proiect npm: `skill-forge`; alias import: `@/*`; folder sursă: `src/`
-- MVP: un profil local per browser; autentificare OAuth (cine ești) din Faza 1.12 — fără proprietar pe date încă (persistență ulterior)
+- MVP: autentificare OAuth (Faza 1.12) + persistență pe cont în Supabase (Faza 2) când e configurată;
+  fără DB/auth → fallback pe `localStorage` (fără migrare din browser pe cont)
 
 ---
 
@@ -369,9 +370,10 @@ Costul unui răspuns nu e proporțional cu lungimea întrebării, ci cu lungimea
 
 ---
 
-#### Faza 1.12 — Autentificare (cine ești) _(livrată) parțial_
+#### Faza 1.12 — Autentificare (cine ești) _(livrată)_
 
-Primul pas în care aplicația știe cine o folosește. Deliberat **fără bază de date**: nu se salvează nimic despre utilizator — datele nu au încă proprietar. Conversațiile rămân în stocarea locală.
+Primul pas în care aplicația știe cine o folosește. Completat de Faza 2: datele au proprietar
+(`profiles.id`); un om cu GitHub + Google (același email confirmat) rămâne **un singur profil**.
 
 **In scope (livrat):**
 
@@ -380,42 +382,50 @@ Primul pas în care aplicația știe cine o folosește. Deliberat **fără bază
 - Fără variabile de auth: aplicația pornește neautentificată (ca înainte); în **producție** fără config, `POST /api/chat` e **închis** (503), nu deschis
 - Cu auth configurat: fără sesiune, `/api/chat` → **401** înainte de orice apel la model; `console.info` doar cu `userId`
 - UI: buton login → fereastră de alegere; după login — nume, email, poză, ieșire; restul app (temă, profil local, Despre) rămâne folosibil
-- Emailul contului în „Profilul tău” ca câmp **readonly** (nu e în tipul Profile, nu în localStorage, nu în system prompt)
+- Emailul contului în „Profilul tău” ca câmp **readonly** (nu e în tipul Profile, nu în system prompt)
 - Anulare la furnizor (`access_denied`) tratată pe ruta noastră — mesaj în română în app, o linie în terminal
 - Documentație `docs/nextauth/README.md` + skill `add-integration`
+- **Completat în Faza 2:** proprietar pe date; unire conturi pe email confirmat; preferințe pe cont
 
-**Rămas pentru persistență (de aceea „parțial”):**
+**Out of scope (rămâne):**
 
-- Proprietar pe conversații / profil (tabel, coloană user id)
-- Datele nu mai sunt „ale browserului” — doi useri pe același PC nu mai împart chat-urile
-- Preferințe salvate pe cont
-
-**Out of scope acum:**
-
-- Bază de date / adapter Auth.js
 - Activarea Google (doar pregătire UI + id)
 - Autorizare pe roluri
+- Adapter Auth.js pe tabelele Supabase Auth (folosim tabelele noastre `profiles` / `identities`)
 
 **De discutat la curs:** autentificare vs autorizare; de ce verificarea pe server nu e opțională; costul unei rute de model publice; de ce jurnalul de server e tot un loc cu date personale; de ce o librărie care „înghite” motivul unei erori costă mai mult timp.
 
 ---
 
-### Faza 2 — Memorie și progres
+### Faza 2 — Memorie și progres _(livrată) parțial — persistență + memorie_
 
-**In scope:**
+**In scope (livrat acum):**
 
-- Persistență conversații pe **server** (nu doar `localStorage`) — inclusiv recuperare după refresh mid-stream
-- **Proprietar pe date** (legătura cont ↔ conversații/profil) — completează Faza 1.12
-- Actualizare profil/progres din conversație (ex. „am terminat modulul de streaming")
+- Bază Postgres (Supabase): `profiles`, `identities`, `conversations`, `messages` — schema în `src/lib/supabase/schema.sql`
+- Proprietar pe fiecare tabel de date = `profiles.id` (nu id-ul de la furnizorul OAuth)
+- Identități separate; unire pe **email confirmat** de furnizor; fără email = profil nou (ramură normală, mesaj în UI)
+- Client gated: fără env → `localStorage` ca înainte; build fără `.env.local` reușește
+- Acces doar server-side (cheia de serviciu); RLS activ **fără politici**; fiecare citire filtrează pe owner
+- **Nu** se migrează istoricul din browser (fără proprietar); notificare o dată în UI
+- Preferințe (obiectiv, nivel via skills, stil răspuns) pe `profiles` → același `buildSystemPrompt`
+- Memorie: ultimele N mesaje + rezumat salvat pe conversație; rezumat regenerat doar când istoricul crește cu N; după stream, nu înainte
+- UI arată conversația **completă**; modelul primește fereastra + rezumat
+- Documentație `docs/supabase/README.md`
+
+**In scope (rămas / ulterior în Faza 2):**
+
+- Actualizare profil/progres din conversație (ex. „am terminat modulul…")
 - Plan de învățare structurat (pași, termene) stocat și injectat în system prompt
-- Istoric conversații vizibil în UI _(lista locală există din 1.2 / 1.6; aici se leagă de backend)_
-- Răspunsuri contextuale la progres (ex. „ce urmează?")
+- Recuperare mid-stream pe server (astăzi: sync după `onFinish`)
 
 **Out of scope:**
 
 - Tool calling / unelte agent
-- Comparare provideri
-- Deploy producție _(mutat în Faza 1.4)_
+- Comparare provideri side-by-side
+- Cache distribuit
+- Activarea Google
+
+**De discutat la curs:** de ce o fereastră glisantă e mai bună decât „trimit tot până crapă"; ce se întâmplă când utilizatorul contrazice ceva din rezumat; de ce email confirmat e cheie de identitate acceptabilă și unul neconfirmat e ușă deschisă; GDPR — date pe serverul altcuiva, legate de cont identificabil, inclusiv dreptul de ștergere.
 
 ---
 
@@ -431,7 +441,7 @@ Primul pas în care aplicația știe cine o folosește. Deliberat **fără bază
 **Out of scope:**
 
 - Deploy producție _(mutat în Faza 1.4)_
-- Autentificare de bază _(livrată parțial în 1.12)_
+- Autentificare de bază _(livrată în 1.12; proprietar pe date în Faza 2)_
 - Funcționalități sociale (profil public, sharing)
 - Marketplace de planuri
 
@@ -441,27 +451,30 @@ Primul pas în care aplicația știe cine o folosește. Deliberat **fără bază
 
 ### Exemple concrete
 
-| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                                     |
-| -------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------- |
-| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice              |
-| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare                 |
-| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                            |
-| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el                  |
-| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid             |
-| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus            |
-| „Răspunde cu titluri, listă, tabel și două blocuri de cod”     | Faza 1.8    | Formatat **în timp ce curge**; cod colorat + buton copiere                |
-| Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi           |
-| Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat                        |
-| OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge               |
-| Grupează un chat pe „TypeScript”, filtrează lista              | Faza 1.10   | Doar chat-urile cu acel tag; „Fără tag” ascunde grupatele                 |
-| Search for „Spring” + filtru tehnologie                        | Faza 1.10   | AND: doar chat-urile cu tag-ul ales care conțin textul; highlight în chat |
-| Șterge un tag folosit de un chat                               | Faza 1.10   | Tag-ul rămâne; mesaj de eroare în modal                                   |
-| Același mesaj de două ori (același profil)                     | Faza 1.11   | Al doilea e marcat „din cache”; nu adaugă cost                            |
-| „Mai încearcă” pe un răspuns                                   | Faza 1.11   | Apelează modelul din nou (nu cache); cost nou pe răspuns                  |
-| Mai multe cereri rapide decât limita pe minut                  | Faza 1.11   | Alertă „Limită de cereri” cu moment de reîncercare, nu eroare tehnică     |
-| Deschide app publică și trimite mesaj fără login               | Faza 1.12   | `/api/chat` → 401; UI rămâne folosibilă (temă, profil local)              |
-| Conectare GitHub + anulare la „Cancel”                         | Faza 1.12   | Cont real în sidebar; la Cancel — mesaj RO în app, fără pagina Auth.js    |
-| Doi useri pe același browser                                   | Faza 1.12   | **Limitare:** văd aceleași conversații locale (rezolvat la persistență)   |
+| Întrebare utilizator                                           | Faza minimă | Comportament așteptat                                                                   |
+| -------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| „Ce-mi lipsește ca să trec de la Java backend la AI engineer?" | Faza 1–2    | Analiză gap bazată pe profil + obiectiv; nu sfaturi generice                            |
+| „Fă-mi un plan de 3 luni pentru Next.js + AI SDK"              | Faza 2      | Plan structurat, salvat, reutilizabil în sesiuni viitoare                               |
+| „Ține minte că am terminat modulul de streaming — ce urmează?" | Faza 2+     | Știe progresul; propune pasul următor din plan                                          |
+| „Mai încearcă" pe un răspuns slab                              | Faza 1.5    | Răspunsul vechi e înlocuit; nu apare un al doilea sub el                                |
+| „Exportă planul ca Markdown / JSON"                            | Faza 1.5    | Fișier cu profil + conversație + dată; MD lizibil, JSON valid                           |
+| Refresh după o conversație / comutare pe un chat vechi         | Faza 1.6    | Mesajele din arhivă sunt acolo; fără conversație goală în plus                          |
+| „Răspunde cu titluri, listă, tabel și două blocuri de cod”     | Faza 1.8    | Formatat **în timp ce curge**; cod colorat + buton copiere                              |
+| Editează un mesaj din mijlocul conversației                    | Faza 1.8    | Se taie tot ce era sub el; un singur fir, fără răspunsuri vechi                         |
+| Același mesaj pe Anthropic și pe OpenAI                        | Faza 1.9    | Două răspunsuri; selectorul e lângă caseta de chat                                      |
+| OpenAI fără cheie în `.env.local`                              | Faza 1.9    | Opțiunea e vizibilă, dezactivată, cu motiv; Anthropic merge                             |
+| Grupează un chat pe „TypeScript”, filtrează lista              | Faza 1.10   | Doar chat-urile cu acel tag; „Fără tag” ascunde grupatele                               |
+| Search for „Spring” + filtru tehnologie                        | Faza 1.10   | AND: doar chat-urile cu tag-ul ales care conțin textul; highlight în chat               |
+| Șterge un tag folosit de un chat                               | Faza 1.10   | Tag-ul rămâne; mesaj de eroare în modal                                                 |
+| Același mesaj de două ori (același profil)                     | Faza 1.11   | Al doilea e marcat „din cache”; nu adaugă cost                                          |
+| „Mai încearcă” pe un răspuns                                   | Faza 1.11   | Apelează modelul din nou (nu cache); cost nou pe răspuns                                |
+| Mai multe cereri rapide decât limita pe minut                  | Faza 1.11   | Alertă „Limită de cereri” cu moment de reîncercare, nu eroare tehnică                   |
+| Deschide app publică și trimite mesaj fără login               | Faza 1.12   | `/api/chat` → 401; UI rămâne folosibilă (temă, profil local)                            |
+| Conectare GitHub + anulare la „Cancel”                         | Faza 1.12   | Cont real în sidebar; la Cancel — mesaj RO în app, fără pagina Auth.js                  |
+| Doi useri pe același browser                                   | Faza 1.12   | Fără DB: aceleași chat-uri locale. **Cu Faza 2:** fiecare cont își vede doar datele lui |
+| Login pe laptop A, același cont pe laptop B                    | Faza 2      | Aceleași conversații pe cont; istoricul vechi din browser **nu** se preia               |
+| Doi studenți / două conturi pe același deploy                  | Faza 2      | Fiecare vede doar conversațiile proprii (verificare izolare)                            |
+| Conversație lungă (> N mesaje)                                 | Faza 2      | Modelul primește rezumat + ultimele N; UI arată tot firul                               |
 
 ### Format pentru criterii noi
 
@@ -482,16 +495,17 @@ La adăugarea unei funcționalități noi, documentează:
 - `.gitignore` exclude `.env`, `.env.local` și variantele
 - Cheile reale **nu** se scriu în documentație, cod sursă sau commit-uri
 
-### Date personale (profil)
+### Date personale (profil + conversații)
 
-Profilul (nume, stack, skills, obiectiv) este **dată personală**.
+Profilul (nume, stack, skills, obiectiv, stil răspuns) și conversațiile sunt **date personale**.
 
-| Aspect             | Faza 1.3 (MVP actual)                                                                                     | Faza 2–3+                                       |
-| ------------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); tema pe cheie separată `skillforge-theme` | Poate migra la DB server / cloud                |
-| Acces              | Doar pe dispozitivul/browserul respectiv                                                                  | Autentificare necesară                          |
-| Trimitere la terți | La fiecare mesaj: profilul merge în system prompt → Anthropic (necesar pentru răspunsuri contextualizate) | Aceeași regulă + politică explicită documentată |
-| Ștergere           | Ștergere `localStorage` pentru `skillforge-app` / `skillforge-theme` (sau DevTools → Application)         | Endpoint/mechanism documentat                   |
+| Aspect             | Fără Supabase (fallback)                                                                          | Cu Supabase (Faza 2, configurat)                                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stocare            | Browser: Zustand `persist` → `localStorage` (`skillforge-app`); tema pe `skillforge-theme`        | Postgres pe Supabase: `profiles`, `conversations`, `messages`, `identities`; legat de cont (`profiles.id`)                                                                                |
+| Acces              | Doar pe dispozitivul/browserul respectiv                                                          | Doar proprietarul (filtru pe `owner_id` / `profiles.id` pe server); cheia de serviciu doar pe server; RLS fără politici pe browser                                                        |
+| Trimitere la terți | La fiecare mesaj: profilul (+ eventual rezumat) merge în system prompt → providerul LLM           | Aceeași regulă; emailul contului **nu** e în Profile / system prompt                                                                                                                      |
+| Ștergere           | Ștergere `localStorage` pentru `skillforge-app` / `skillforge-theme` (sau DevTools → Application) | Ștergere din Table Editor Supabase pe rândurile cu `owner_id` al tău, sau ștergerea rândului din `profiles` (cascade pe identități/conversații/mesaje). Endpoint self-service — ulterior. |
+| Migrare browser→DB | —                                                                                                 | **Nu** se face. Istoricul local nu are proprietar; un import ar da datele oricui se autentifică primul pe acel calculator.                                                                |
 
 **Export (Faza 1.5):** fișierul descărcat (JSON/Markdown) conține **profilul + conversația**. Utilizatorul trebuie să știe ce iese din aplicație — poate trimite mai departe date personale fără să-și dea seama.
 
@@ -538,17 +552,18 @@ Prețurile stau în `src/lib/providers.ts` (`pricingByModel`, cu `verifiedAt`) �
 
 ## 8. Stack tehnic
 
-| Componentă              | Tehnologie                                        | De la faza |
-| ----------------------- | ------------------------------------------------- | ---------- |
-| Framework web           | Next.js 16 (App Router)                           | 1.1        |
-| Limbaj                  | TypeScript                                        | 1.1        |
-| Styling                 | Tailwind CSS v4 + shadcn/ui                       | 1.1        |
-| Formatare               | Prettier + prettier-plugin-tailwindcss            | 1.1        |
-| Stare client            | Zustand + persist (localStorage); temă pe Context | 1.2 / 1.7  |
-| LLM integration         | Vercel AI SDK                                     | 1.3        |
-| Persistență profil      | Zustand (UI); server la 1.3+                      | 1.2        |
-| Persistență conversații | SQLite sau JSON                                   | 2          |
-| Deploy                  | Vercel                                            | 1.4        |
+| Componentă              | Tehnologie                                                                     | De la faza    |
+| ----------------------- | ------------------------------------------------------------------------------ | ------------- |
+| Framework web           | Next.js 16 (App Router)                                                        | 1.1           |
+| Limbaj                  | TypeScript                                                                     | 1.1           |
+| Styling                 | Tailwind CSS v4 + shadcn/ui                                                    | 1.1           |
+| Formatare               | Prettier + prettier-plugin-tailwindcss                                         | 1.1           |
+| Stare client            | Zustand + persist (localStorage); temă pe Context; cu DB — profil/chat pe cont | 1.2 / 1.7 / 2 |
+| LLM integration         | Vercel AI SDK                                                                  | 1.3           |
+| Persistență profil      | Zustand local **sau** Supabase `profiles` (gated)                              | 1.2 / 2       |
+| Persistență conversații | localStorage **sau** Supabase `conversations` + `messages` (gated)             | 1.6 / 2       |
+| Memorie LLM             | Fereastră N + rezumat salvat pe conversație                                    | 2             |
+| Deploy                  | Vercel                                                                         | 1.4           |
 
 ---
 
@@ -578,4 +593,4 @@ Prețurile stau în `src/lib/providers.ts` (`pricingByModel`, cu `verifiedAt`) �
 
 ---
 
-_Ultima actualizare: 2026-09-16 — Faza 1.11 (Cost vizibil + cache + rate limit) — livrată_
+_Ultima actualizare: 2026-09-21 — Faza 2 (persistență Supabase + memorie) — livrată parțial; Faza 1.12 completată cu proprietar pe date_

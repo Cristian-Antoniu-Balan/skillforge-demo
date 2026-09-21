@@ -21,6 +21,10 @@ import {
   ProviderNotConfiguredError
 } from "@/lib/providers.server";
 import { checkRateLimit, rateLimitKeyFromRequest } from "@/lib/rate-limit";
+import { getConversationForOwner } from "@/lib/supabase/conversations";
+import { buildMemoryForModel } from "@/lib/supabase/memory";
+import { isPersistenceConfigured } from "@/lib/supabase/persistence";
+import { getProfileForOwner } from "@/lib/supabase/profiles";
 import { buildSystemPrompt } from "@/lib/system-prompt";
 import type { Profile } from "@/lib/types";
 
@@ -79,13 +83,15 @@ function cachedTextToResponse(text: string, metadata: ChatMessageMetadata) {
 export async function POST(req: Request) {
   // Verificarea care contează: pe server, înainte de orice apel la model.
   // Un buton ascuns în UI nu protejează — ruta rămâne publică altfel.
+  let ownerId: string | null = null;
   if (isAuthConfigured()) {
     const session = await auth();
     if (!session?.user?.id) {
       return Response.json({ error: "Trebuie să te autentifici ca să trimiți mesaje către model." }, { status: 401 });
     }
+    ownerId = session.user.id;
     // Minim în jurnal: doar id — nici email, nici nume, nici token (jurnalul e text păstrat de altcineva).
-    console.info(`[api/chat] userId=${session.user.id}`);
+    console.info(`[api/chat] userId=${ownerId}`);
   } else if (mustRequireAuthInProduction()) {
     // Producție fără AUTH_*: închidem ruta — altfel cheia de model e cheltuibilă de oricine are link-ul.
     return Response.json(
@@ -120,6 +126,7 @@ export async function POST(req: Request) {
     profile?: Profile;
     providerId?: string;
     model?: string;
+    conversationId?: string;
     /** trimis de DefaultChatTransport — „regenerate-message" ocolește cache-ul. */
     trigger?: "submit-message" | "regenerate-message";
     /** Override explicit (dacă UI-ul vrea să forțeze ocolirea). */
@@ -144,14 +151,42 @@ export async function POST(req: Request) {
     throw error;
   }
 
-  const systemPrompt = buildSystemPrompt(body.profile);
+  // Cu baza: profilul din cont (nu din body) — preferințele sunt pe owner, nu pe laptop.
+  let profile = body.profile;
+  let memorySummary: string | null = null;
+  let messagesForModel = body.messages;
+
+  if (isPersistenceConfigured() && ownerId) {
+    const storedProfile = await getProfileForOwner(ownerId);
+    if (storedProfile) {
+      profile = storedProfile;
+    }
+
+    // Memorie: UI trimite tot firul; modelul primește fereastra + rezumatul salvat.
+    if (body.conversationId) {
+      const conversation = await getConversationForOwner(ownerId, body.conversationId);
+      const memory = buildMemoryForModel(
+        body.messages,
+        conversation?.summary ?? null,
+        conversation?.summaryUntilPosition ?? null
+      );
+      messagesForModel = memory.recentMessages;
+      memorySummary = memory.summaryForPrompt;
+    } else {
+      const memory = buildMemoryForModel(body.messages, null, null);
+      messagesForModel = memory.recentMessages;
+      memorySummary = memory.summaryForPrompt;
+    }
+  }
+
+  const systemPrompt = buildSystemPrompt(profile, memorySummary);
   // „Mai încearcă" trebuie să cheme modelul — altfel butonul nu ar face nimic.
   const skipCache = body.skipCache === true || body.trigger === "regenerate-message";
   const cacheKey = buildChatCacheKey({
     providerId: selection.providerId,
     modelId: selection.modelId,
     systemPrompt,
-    messages: body.messages
+    messages: messagesForModel
   });
 
   if (!skipCache) {
@@ -173,7 +208,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model,
     system: systemPrompt,
-    messages: await convertToModelMessages(body.messages),
+    messages: await convertToModelMessages(messagesForModel),
     // Acumulăm textul final aici — stream-ul în sine nu e serializabil în cache.
     // Scriem și după regenerate: citirea e ocolită, dar următoarea întrebare identică ia răspunsul nou.
     onFinish: ({ text }) => {

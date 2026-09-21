@@ -23,9 +23,10 @@ export function AccountEmailField() {
     value = "";
     hint = "Nu ești conectat — emailul contului apare aici după autentificare.";
   } else if (!session.user.email) {
-    // GitHub poate returna null dacă emailul e ascuns în setările contului.
+    // Fără email nu există cheie de unire între furnizori — consecința e aici, nu doar în logs.
     value = "";
-    hint = "Furnizorul nu ne-a trimis emailul (poate e ascuns în setările contului).";
+    hint =
+      "Furnizorul nu ne-a trimis emailul (poate e ascuns în setările contului). Fără email confirmat, un login cu alt furnizor poate crea un al doilea profil, fără conversațiile de pe contul de acum.";
   } else {
     value = session.user.email;
     hint =

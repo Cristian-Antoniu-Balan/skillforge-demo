@@ -11,11 +11,18 @@ export interface Skill {
   level: SkillLevel;
 }
 
+/** Cât de detaliate să fie răspunsurile — pe cont, în system prompt (nu e email). */
+export type ResponseStyle = "concis" | "echilibrat" | "detaliat";
+
+export const RESPONSE_STYLES: ResponseStyle[] = ["concis", "echilibrat", "detaliat"];
+
 export interface Profile {
   name: string;
   stack: string;
   skills: Skill[];
   objective: string;
+  /** Preferință de stil; default echilibrat. Emailul contului NU stă aici. */
+  responseStyle: ResponseStyle;
 }
 
 /** Format vechi (Faza 1.2) — păstrat pentru migrate din localStorage. */
@@ -40,6 +47,13 @@ export interface Conversation {
   messages: ChatUIMessage[];
   /** Id tehnologie sub care e grupat chat-ul; null/undefined = negrupat. */
   technologyId?: string | null;
+  /**
+   * Rezumat salvat pentru model — UI arată messages complete.
+   * null = încă nu s-a rezumat (sau memorie locală fără server).
+   */
+  summary?: string | null;
+  /** Ultimul index (position) inclus în summary. */
+  summaryUntilPosition?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,6 +82,12 @@ export interface AppStore {
   conversationSearchQuery: string;
 
   setProfile: (profile: Profile) => void;
+  /** Înlocuire după bootstrap din server — fără round-trip sync. */
+  replaceAccountData: (data: {
+    profile: Profile;
+    conversations: Conversation[];
+    activeConversationId: string | null;
+  }) => void;
   setSettingsOpen: (open: boolean) => void;
   setSettingsTab: (tab: SettingsTab) => void;
   setConversationSearchQuery: (query: string) => void;

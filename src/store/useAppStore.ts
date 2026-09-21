@@ -5,21 +5,27 @@
 // - În timpul streamingului: useChat (construiește token cu token; nu scriem în persist).
 // - După stream: store-ul e arhiva (lista + mesaje), scrisă o singură dată la onFinish.
 //
-// De ce Zustand aici și nu doar Context: mesajele / lista se schimbă des și sunt citite din
-// sidebar, header, settings, chat. Context fără selectors re-randează pe orice schimbare;
-// store-ul permite selectori pe câmp. Context rămâne potrivit pentru valori rare cu puțini
-// consumatori (temă; sesiunea useChat) — vezi theme-provider.tsx / chat-session-context.tsx.
+// Cu baza configurată: profilul + conversațiile sunt ale contului (API); localStorage
+// păstrează doar preferințe UI (provider, tehnologii). Fără migrare din browser.
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatUIMessage } from "@/lib/cost";
 
 import { mockProfile } from "@/lib/mock/profile";
 import { DEFAULT_TECHNOLOGIES } from "@/lib/mock/technologies";
+import { isClientPersistenceEnabled } from "@/lib/persistence-mode";
+import {
+  syncConversationMessages,
+  syncCreateConversation,
+  syncDeleteConversation,
+  syncPatchConversation,
+  syncProfile
+} from "@/lib/persistence-sync";
 import { DEFAULT_CHAT_MODEL, DEFAULT_PROVIDER_ID, isKnownModel, PROVIDERS } from "@/lib/providers";
 import type { AppStore, Conversation, DeleteTechnologyResult, Message, Profile, TechnologyTag } from "@/lib/types";
 
 /** Versiunea stării din localStorage — orice schimbare de formă cere increment + migrate. */
-export const APP_STORE_VERSION = 2;
+export const APP_STORE_VERSION = 3;
 
 /** Limita curentă pentru numele unui tag; alte reguli vin ulterior. */
 export const TECHNOLOGY_TAG_MAX_LENGTH = 20;
@@ -57,6 +63,8 @@ type PersistedSlice = Pick<
   "profile" | "selectedProviderId" | "selectedModel" | "technologies" | "conversations" | "activeConversationId"
 >;
 
+type LocalOnlySlice = Pick<AppStore, "selectedProviderId" | "selectedModel" | "technologies">;
+
 function migratePersistedState(persistedState: unknown, version: number): PersistedSlice {
   const state = persistedState as PersistedSlice;
 
@@ -82,6 +90,14 @@ function migratePersistedState(persistedState: unknown, version: number): Persis
     }
   }
 
+  // v2 → v3: responseStyle pe profil (preferință pe cont / local).
+  if (version < 3 && state.profile) {
+    state.profile = {
+      ...state.profile,
+      responseStyle: state.profile.responseStyle ?? "echilibrat"
+    };
+  }
+
   return state;
 }
 
@@ -103,7 +119,13 @@ export const useAppStore = create<AppStore>()(
       settingsTab: "general",
       conversationSearchQuery: "",
 
-      setProfile: profile => set({ profile }),
+      setProfile: profile => {
+        set({ profile });
+        void syncProfile(profile);
+      },
+      /** Înlocuire în bloc după /api/account — fără sync (datele vin deja de pe server). */
+      replaceAccountData: ({ profile, conversations, activeConversationId }) =>
+        set({ profile, conversations, activeConversationId, error: null }),
       setSettingsOpen: settingsOpen => set({ settingsOpen }),
       setSettingsTab: settingsTab => set({ settingsTab }),
       setConversationSearchQuery: conversationSearchQuery => set({ conversationSearchQuery }),
@@ -119,6 +141,8 @@ export const useAppStore = create<AppStore>()(
           title: "Conversație nouă",
           messages: [],
           technologyId: null,
+          summary: null,
+          summaryUntilPosition: null,
           createdAt: now,
           updatedAt: now
         };
@@ -127,37 +151,46 @@ export const useAppStore = create<AppStore>()(
           activeConversationId: id,
           error: null
         }));
+        void syncCreateConversation(conversation);
         return id;
       },
 
-      renameConversation: (id, title) =>
+      renameConversation: (id, title) => {
         set(state => ({
           conversations: state.conversations.map(c =>
             c.id === id ? { ...c, title, updatedAt: new Date().toISOString() } : c
           )
-        })),
+        }));
+        void syncPatchConversation({ id, title });
+      },
 
-      deleteConversation: id =>
+      deleteConversation: id => {
         set(state => {
           const conversations = state.conversations.filter(c => c.id !== id);
           const activeConversationId =
             state.activeConversationId === id ? (conversations[0]?.id ?? null) : state.activeConversationId;
           return { conversations, activeConversationId };
-        }),
+        });
+        void syncDeleteConversation(id);
+      },
 
-      setConversationMessages: (id, messages) =>
+      setConversationMessages: (id, messages) => {
         set(state => ({
           conversations: state.conversations.map(c =>
             c.id === id ? { ...c, messages, updatedAt: new Date().toISOString() } : c
           )
-        })),
+        }));
+        void syncConversationMessages(id, messages);
+      },
 
-      setConversationTechnology: (conversationId, technologyId) =>
+      setConversationTechnology: (conversationId, technologyId) => {
         set(state => ({
           conversations: state.conversations.map(c =>
             c.id === conversationId ? { ...c, technologyId, updatedAt: new Date().toISOString() } : c
           )
-        })),
+        }));
+        void syncPatchConversation({ id: conversationId, technologyId });
+      },
 
       addTechnology: tag => {
         const id = generateId("tech");
@@ -194,18 +227,25 @@ export const useAppStore = create<AppStore>()(
       // Fără skipHydration, primul render pe client vede conversations=[] înainte de localStorage
       // și orice logică pe „listă goală" creează o conversație nouă la fiecare refresh.
       skipHydration: true,
-      partialize: (state): PersistedSlice => ({
-        // Doar ce trebuie să supraviețuiască refresh-ului.
-        // isLoading / isTyping / error / settingsOpen / conversationSearchQuery rămân în memorie:
-        // altfel redeschizi aplicația pe „se încarcă…" sau pe o eroare / filtru de acum trei zile.
-        // Tema are cheie proprie (skillforge-theme) — nu o amestecăm aici.
-        profile: state.profile,
-        selectedProviderId: state.selectedProviderId,
-        selectedModel: state.selectedModel,
-        technologies: state.technologies,
-        conversations: state.conversations,
-        activeConversationId: state.activeConversationId
-      }),
+      partialize: (state): PersistedSlice | LocalOnlySlice => {
+        // Cu baza: profilul și chat-urile sunt ale contului — nu le rescriem în browser
+        // (și nu le „împrumutăm" următorului user de pe același laptop).
+        if (isClientPersistenceEnabled()) {
+          return {
+            selectedProviderId: state.selectedProviderId,
+            selectedModel: state.selectedModel,
+            technologies: state.technologies
+          };
+        }
+        return {
+          profile: state.profile,
+          selectedProviderId: state.selectedProviderId,
+          selectedModel: state.selectedModel,
+          technologies: state.technologies,
+          conversations: state.conversations,
+          activeConversationId: state.activeConversationId
+        };
+      },
       // localStorage vechi poate avea id-uri scoase din registru — le aducem la o pereche validă.
       merge: (persisted, current) => {
         const merged = { ...current, ...(persisted as Partial<AppStore>) };
@@ -218,6 +258,9 @@ export const useAppStore = create<AppStore>()(
         // TODO: preluare lista de tehnologii din DB (nu hardcodat).
         if (!Array.isArray(merged.technologies) || merged.technologies.length === 0) {
           merged.technologies = DEFAULT_TECHNOLOGIES;
+        }
+        if (merged.profile && !merged.profile.responseStyle) {
+          merged.profile = { ...merged.profile, responseStyle: "echilibrat" };
         }
         return merged;
       }

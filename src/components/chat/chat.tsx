@@ -85,6 +85,9 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
   const modelRef = useRef(selectedModel);
   modelRef.current = selectedModel;
 
+  const conversationIdRef = useRef(activeConversationId);
+  conversationIdRef.current = activeConversationId;
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
 
@@ -95,7 +98,9 @@ function ChatSessionInner({ activeConversationId, initialMessages, pendingTextRe
         body: () => ({
           profile: profileRef.current,
           providerId: providerIdRef.current,
-          model: modelRef.current
+          model: modelRef.current,
+          // Memoria pe server taie istoricul după id; UI păstrează firul complet.
+          conversationId: conversationIdRef.current
         })
       }),
     []
